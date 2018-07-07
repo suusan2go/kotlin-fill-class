@@ -21,10 +21,10 @@ targetCompatibility = JavaVersion.VERSION_1_8
 intellij {
     version '143.2370.31'
     plugins = ['Kotlin']
-    pluginName 'kotlin-fill-class'
+    pluginName 'kotlinfillclass'
 }
 
-group 'com.suusa2go.kotlin-fill-class'
+group 'com.suusa2go.kotlinfillclass'
 version '0.1-SNAPSHOT'
 
 repositories {
