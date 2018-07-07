@@ -28,8 +28,11 @@
 
     <project-components>
     </project-components>
-
     <actions>
+        <group id="MyPlugin.SampleMenu" text="_Sample Menu" description="Sample menu">
+            <add-to-group group-id="MainMenu" anchor="last"  />
+            <action id="Myplugin.Dialogs" class="FillClass" text="Show _Dialog" description="A test menu item" />
+        </group>
     </actions>
 
 </idea-plugin>
