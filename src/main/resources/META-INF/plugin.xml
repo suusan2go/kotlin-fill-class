@@ -1,5 +1,5 @@
-<idea-plugin version="2">
-    <id>com.suusa2go.kotlin-fill-class</id>
+<idea-plugin>
+    <id>com.suusan2go.kotlin-fill-class</id>
     <name>kotlin-fill-class</name>
     <version>1.0</version>
     <vendor email="ksuzuki180@gmail.com" url="http://www.yourcompany.com">suusan2go</vendor>
