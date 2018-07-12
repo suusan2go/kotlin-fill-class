@@ -4,6 +4,8 @@
     <bytecodeTargetLevel>
       <module name="kotlin-fill-class_main" target="1.8" />
       <module name="kotlin-fill-class_test" target="1.8" />
+      <module name="kotlinfillclass_main" target="1.8" />
+      <module name="kotlinfillclass_test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
