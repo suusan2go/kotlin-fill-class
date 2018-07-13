@@ -1,6 +1,7 @@
 package com.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -14,7 +15,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 
 
-class FillClassIntention: IntentionAction {
+class FillClassIntention: IntentionAction, PsiElementBaseIntentionAction() {
 
     override fun getFamilyName(): String {
         return text
@@ -22,22 +23,16 @@ class FillClassIntention: IntentionAction {
 
     override fun getText(): String = "Fill class constructor"
 
-    override fun invoke(project: Project, editor: Editor, psiFile: PsiFile) {
-        val ktFile = psiFile as KtFile
-        val element = ktFile.findElementAt(editor.caretModel.offset)
-
+    override fun invoke(project: Project, editor: Editor, element: PsiElement) {
         val clazz =  PsiTreeUtil.getParentOfType(element, KtLightClass::class.java, false)
-        val file = PsiManager.getInstance(project).findFile(psiFile.virtualFile) as KtFile
         val factory = KtPsiFactory(project = project)
         val argument = factory.createStringTemplate("hogehoge")
 
-        file!!.node.addChild(argument.node)
+        element.node.addChild(argument.node)
         return
     }
 
-
-
-    override fun isAvailable(project: Project, editor: Editor?, psiFile: PsiFile): Boolean {
+    override fun isAvailable(p0: Project, p1: Editor?, p2: PsiElement): Boolean {
         return true
     }
 
