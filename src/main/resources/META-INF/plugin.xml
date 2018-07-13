@@ -4,6 +4,8 @@
     <version>1.0</version>
     <vendor email="ksuzuki180@gmail.com" url="http://www.yourcompany.com">suusan2go</vendor>
 
+
+
     <description><![CDATA[
     ]]></description>
 
@@ -14,11 +16,8 @@
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
     <idea-version since-build="143.2370.31"/>
 
-    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
-         on how to target different products -->
-    <!-- uncomment to enable plugin in all products
     <depends>com.intellij.modules.lang</depends>
-    -->
+    <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <intentionAction>
