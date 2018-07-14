@@ -13,9 +13,16 @@ import org.jetbrains.kotlin.asJava.toLightClassOrigin
 import org.jetbrains.kotlin.parsing.KotlinParser
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
+import com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider.getLanguage
+import com.intellij.refactoring.changeSignature.LanguageChangeSignatureDetector
+import org.jetbrains.kotlin.idea.quickfix.KotlinQuickFixAction
+import org.jetbrains.kotlin.idea.quickfix.createFromUsage.createCallable.CreateCallableMemberFromUsageFactory
+import org.jetbrains.kotlin.idea.quickfix.createFromUsage.createCallable.CreateConstructorFromSuperTypeCallActionFactory
 
 
-class FillClassIntention: IntentionAction, PsiElementBaseIntentionAction() {
+class FillClassIntention(
+        element: KtConstructorCalleeExpression
+): KotlinQuickFixAction<KtConstructorCalleeExpression>(element) {
 
     override fun getFamilyName(): String {
         return text
@@ -23,17 +30,13 @@ class FillClassIntention: IntentionAction, PsiElementBaseIntentionAction() {
 
     override fun getText(): String = "Fill class constructor"
 
-    override fun invoke(project: Project, editor: Editor, element: PsiElement) {
-        val clazz =  PsiTreeUtil.getParentOfType(element, KtLightClass::class.java, false)
+    override fun invoke(project: Project, editor: Editor?, file: KtFile) {
+        CreateConstructorFromSuperTypeCallActionFactory
+        val clazz =  PsiTreeUtil.getParentOfType(element, KtElement::class.java, false)
         val factory = KtPsiFactory(project = project)
         val argument = factory.createStringTemplate("hogehoge")
-
-        element.node.addChild(argument.node)
+        element.replace(argument)
         return
-    }
-
-    override fun isAvailable(p0: Project, p1: Editor?, p2: PsiElement): Boolean {
-        return true
     }
 
     override fun startInWriteAction() = true

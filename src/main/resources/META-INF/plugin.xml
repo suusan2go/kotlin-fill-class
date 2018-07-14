@@ -19,11 +19,8 @@
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <intentionAction>
-            <className>com.suusan2go.kotlinfillclass.intentions.FillClassIntention</className>
-            <category>Kotlin</category>
-        </intentionAction>
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <quickFixContributor implementation="com.suusan2go.kotlinfillclass.quickfix.QuickFixRegistrar"/>
     </extensions>
 
     <application-components>
