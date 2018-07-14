@@ -21,8 +21,8 @@ import org.jetbrains.kotlin.idea.quickfix.createFromUsage.createCallable.CreateC
 
 
 class FillClassIntention(
-        element: KtConstructorCalleeExpression
-): KotlinQuickFixAction<KtConstructorCalleeExpression>(element) {
+        element: KtCallExpression
+): KotlinQuickFixAction<KtCallExpression>(element) {
 
     override fun getFamilyName(): String {
         return text
