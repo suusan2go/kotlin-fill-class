@@ -23,7 +23,11 @@ targetCompatibility = JavaVersion.VERSION_1_8
 intellij {
     version '15.0.4'
     plugins = ['Kotlin']
-    pluginName 'kotlinfillclass'
+    pluginName 'kotlin-fill-class'
+    publishPlugin {
+        username 'ksuzuki180@gmail.com'
+        password System.getenv('PASSWORD')
+    }
 }
 
 repositories {
@@ -31,7 +35,7 @@ repositories {
 }
 
 group 'com.github.suusan2go.kotlin-fill-class'
-version '1.0-SNAPSHOT'
+version '0.1-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
@@ -51,8 +55,3 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-patchPluginXml {
-    changeNotes """
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>"""
-}
