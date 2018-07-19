@@ -1,23 +1,15 @@
 package com.suusan2go.kotlinfillclass.intentions
 
-import com.intellij.codeInsight.intention.IntentionAction
-import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.asJava.KtLightClass
-import org.jetbrains.kotlin.asJava.toLightClassOrigin
-import org.jetbrains.kotlin.parsing.KotlinParser
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.descriptors.ConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
-import com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider.getLanguage
-import com.intellij.refactoring.changeSignature.LanguageChangeSignatureDetector
+import org.jetbrains.kotlin.idea.caches.resolve.analyzeAndGetResult
 import org.jetbrains.kotlin.idea.quickfix.KotlinQuickFixAction
-import org.jetbrains.kotlin.idea.quickfix.createFromUsage.createCallable.CreateCallableMemberFromUsageFactory
-import org.jetbrains.kotlin.idea.quickfix.createFromUsage.createCallable.CreateConstructorFromSuperTypeCallActionFactory
+import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
+import org.jetbrains.kotlin.types.typeUtil.*
 
 
 class FillClassIntention(
