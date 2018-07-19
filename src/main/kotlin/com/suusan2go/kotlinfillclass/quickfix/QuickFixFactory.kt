@@ -14,7 +14,7 @@ object QuickFixFactory: KotlinIntentionActionsFactory() {
         val element = diagnostic.psiElement.getNonStrictParentOfType<KtCallExpression>() ?: return emptyList()
         val fixes = ArrayList<IntentionAction>()
         fixes.add(
-                FillClassIntention(element!!)
+                FillClassIntention(element)
         )
         return fixes
     }
