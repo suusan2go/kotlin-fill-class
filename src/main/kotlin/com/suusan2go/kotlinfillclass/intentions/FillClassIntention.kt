@@ -34,7 +34,9 @@ class FillClassIntention(
         val parameters = classDescriptor!!.constructors.first().valueParameters
 
         val factory = KtPsiFactory(project = project)
-        val argument = factory.createStringTemplate("hogehoge")
+        val argument = factory.createExpression("""${classDescriptor.name.identifier}(
+            ${createParameterSetterExpression(parameters)}
+            )""".trimMargin())
         element.replace(argument)
         return
     }
