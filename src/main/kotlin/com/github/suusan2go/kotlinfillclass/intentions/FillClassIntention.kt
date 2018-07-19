@@ -47,7 +47,8 @@ class FillClassIntention(
         var result = ""
         parameters.forEach { parameter ->
             var parameterString = "${parameter.name.identifier} = ${createDefaultValueFromParameter(parameter)},\n".let {
-                if(parameters.last() == parameter) it.replace(",\n","")
+                if(parameters.last() == parameter) return@let it.replace(",\n","")
+                it
             }
             result = "$result$parameterString"
         }
