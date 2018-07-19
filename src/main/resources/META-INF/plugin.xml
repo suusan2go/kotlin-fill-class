@@ -2,9 +2,7 @@
     <id>com.suusan2go.kotlin-fill-class</id>
     <name>kotlin-fill-class</name>
     <version>1.0</version>
-    <vendor email="ksuzuki180@gmail.com" url="http://www.yourcompany.com">suusan2go</vendor>
-
-
+    <vendor email="ksuzuki180@gmail.com" url="https://github.com/suusan2go/kotlin-fill-class">suusan2go</vendor>
 
     <description><![CDATA[
     ]]></description>
