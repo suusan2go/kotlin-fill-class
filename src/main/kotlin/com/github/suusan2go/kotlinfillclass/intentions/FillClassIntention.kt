@@ -56,7 +56,6 @@ class FillClassIntention(
 
     private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String {
         val type = parameter.type
-        val des = type.constructor.declarationDescriptor!!
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
             KotlinBuiltIns.isChar(type) -> "''"
