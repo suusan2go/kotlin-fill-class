@@ -18,7 +18,7 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
-        <quickFixContributor implementation="com.suusan2go.kotlinfillclass.quickfix.QuickFixRegistrar"/>
+        <quickFixContributor implementation="com.github.suusan2go.kotlinfillclass.quickfix.QuickFixRegistrar"/>
     </extensions>
 
     <application-components>

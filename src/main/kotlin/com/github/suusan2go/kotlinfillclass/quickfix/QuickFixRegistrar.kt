@@ -1,4 +1,4 @@
-package com.suusan2go.kotlinfillclass.quickfix
+package com.github.suusan2go.kotlinfillclass.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
 import org.jetbrains.kotlin.diagnostics.DiagnosticFactory

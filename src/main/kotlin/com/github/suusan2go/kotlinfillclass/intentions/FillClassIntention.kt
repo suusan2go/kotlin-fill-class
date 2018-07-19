@@ -1,4 +1,4 @@
-package com.suusan2go.kotlinfillclass.intentions
+package com.github.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project

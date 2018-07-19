@@ -1,7 +1,7 @@
-package com.suusan2go.kotlinfillclass.quickfix
+package com.github.suusan2go.kotlinfillclass.quickfix
 
 import com.intellij.codeInsight.intention.IntentionAction
-import com.suusan2go.kotlinfillclass.intentions.FillClassIntention
+import com.github.suusan2go.kotlinfillclass.intentions.FillClassIntention
 import org.jetbrains.kotlin.diagnostics.Diagnostic
 import org.jetbrains.kotlin.idea.quickfix.KotlinIntentionActionsFactory
 import org.jetbrains.kotlin.psi.KtCallExpression
