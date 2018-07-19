@@ -23,8 +23,16 @@ class FillClassIntention(
     override fun getText(): String = "Fill class constructor"
 
     override fun invoke(project: Project, editor: Editor?, file: KtFile) {
-        CreateConstructorFromSuperTypeCallActionFactory
-        val clazz =  PsiTreeUtil.getParentOfType(element, KtElement::class.java, false)
+        val analysisResult = element.calleeExpression!!.analyzeAndGetResult()
+        val classDescriptor = element
+                .calleeExpression
+                ?.getReferenceTargets(analysisResult.bindingContext)
+                ?.mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
+                ?.distinct()
+                ?.singleOrNull()
+
+        val parameters = classDescriptor!!.constructors.first().valueParameters
+
         val factory = KtPsiFactory(project = project)
         val argument = factory.createStringTemplate("hogehoge")
         element.replace(argument)
