@@ -32,4 +32,34 @@ class FillClassIntention(
     }
 
     override fun startInWriteAction() = true
+
+    private fun createParameterSetterExpression(parameters: List<ValueParameterDescriptor>): String {
+        var result = ""
+        parameters.forEach { parameter ->
+            var parameterString = "${parameter.name.identifier} = ${createDefaultValueFromParameter(parameter)},\n".let {
+                if(parameters.last() == parameter) it.replace(",\n","")
+            }
+            result = "$result$parameterString"
+        }
+        return result
+    }
+
+    private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String {
+        val type = parameter.type
+        val des = type.constructor.declarationDescriptor!!
+        return when {
+            KotlinBuiltIns.isBoolean(type) -> "false"
+            KotlinBuiltIns.isChar(type) -> "''"
+            KotlinBuiltIns.isDouble(type) -> "0.0d"
+            KotlinBuiltIns.isFloat(type) -> "0.0f"
+            KotlinBuiltIns.isInt(type) || KotlinBuiltIns.isLong(type) || KotlinBuiltIns.isShort(type) -> "0"
+            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "emptyArray()"
+            KotlinBuiltIns.isNullableAny(type) -> "null"
+            KotlinBuiltIns.isString(type) -> "\"\""
+            KotlinBuiltIns.isListOrNullableList(type) -> "emptyList()"
+            KotlinBuiltIns.isSetOrNullableSet(type) -> "emptySet()"
+            type.isMarkedNullable -> "null"
+            else -> ""
+        }
+    }
 }
