@@ -18,6 +18,8 @@ data class User(
 )
 ```
 
+- Fill parameters for non primary constructor. Currently this plugin only fill parameters for primary constructor.
+
 ## How to install
 TBD
 
