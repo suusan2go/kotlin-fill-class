@@ -18,25 +18,5 @@ object QuickFixFactory: KotlinIntentionActionsFactory() {
         )
         return fixes
     }
-
-    override fun doCreateActionsForAllProblems(sameTypeDiagnostics: Collection<Diagnostic>): List<IntentionAction> {
-        return super.doCreateActionsForAllProblems(sameTypeDiagnostics)
-    }
-
-    override fun isApplicableForCodeFragment(): Boolean {
-        return super.isApplicableForCodeFragment()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return super.equals(other)
-    }
-
-    override fun hashCode(): Int {
-        return super.hashCode()
-    }
-
-    override fun toString(): String {
-        return super.toString()
-    }
 }
 
