@@ -1,11 +1,12 @@
 <idea-plugin>
     <id>com.suusan2go.kotlin-fill-class</id>
-    <name>kotlin-fill-class</name>
+    <name>Kotlin Fill Class</name>
     <version>1.0</version>
     <vendor email="ksuzuki180@gmail.com" url="https://github.com/suusan2go/kotlin-fill-class">suusan2go</vendor>
 
     <description><![CDATA[
-        Intellij plugin that provide quick fix action for empty constructor to fill property with default value.
+        <p>Intellij plugin that provide quick fix action for empty constructor to fill property with default value.</p>
+        <a target="_blank" href="https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif"><img src="https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif" alt="fill-class" style="max-width:100%;"></a></p>
     ]]></description>
 
     <change-notes><![CDATA[
@@ -13,7 +14,7 @@
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="143.2370.31"/>
+    <idea-version since-build="162"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
