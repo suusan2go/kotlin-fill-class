@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.idea.caches.resolve.analyzeAndGetResult
 import org.jetbrains.kotlin.idea.quickfix.KotlinQuickFixAction
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
+import org.jetbrains.kotlin.util.constructors
 
 
 class FillClassIntention(
@@ -22,21 +23,20 @@ class FillClassIntention(
     override fun getText(): String = "Fill class constructor"
 
     override fun invoke(project: Project, editor: Editor?, file: KtFile) {
-        val analysisResult = element.calleeExpression!!.analyzeAndGetResult()
+        val analysisResult = element?.calleeExpression?.analyzeAndGetResult() ?: return
         val classDescriptor = element
-                .calleeExpression
+                ?.calleeExpression
                 ?.getReferenceTargets(analysisResult.bindingContext)
                 ?.mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
                 ?.distinct()
-                ?.singleOrNull()
-
-        val parameters = classDescriptor!!.constructors.first().valueParameters
+                ?.singleOrNull() ?: return
+        val parameters = classDescriptor.constructors.first().valueParameters
 
         val factory = KtPsiFactory(project = project)
         val argument = factory.createExpression("""${classDescriptor.name.identifier}(
             ${createParameterSetterExpression(parameters)}
             )""".trimMargin())
-        element.replace(argument)
+        element?.replace(argument)
         return
     }
 
