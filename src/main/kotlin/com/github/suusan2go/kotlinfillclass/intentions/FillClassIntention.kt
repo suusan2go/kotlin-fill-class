@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.idea.caches.resolve.analyzeAndGetResult
 import org.jetbrains.kotlin.idea.quickfix.KotlinQuickFixAction
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
-import org.jetbrains.kotlin.types.typeUtil.*
 
 
 class FillClassIntention(
