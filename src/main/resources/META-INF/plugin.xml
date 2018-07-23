@@ -2,7 +2,7 @@
     <id>com.suusan2go.kotlin-fill-class</id>
     <name>Kotlin Fill Class</name>
     <version>1.0</version>
-    <vendor email="ksuzuki180@gmail.com" url="https://github.com/suusan2go/kotlin-fill-class">suusan2go</vendor>
+    <vendor email="ksuzuki180@gmail.com" url="https://github.com/suusan2go">suusan2go</vendor>
 
     <description><![CDATA[
         <p>Intellij plugin that provide quick fix action for empty constructor to fill property with default value.</p>
@@ -14,7 +14,7 @@
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="162"/>
+    <idea-version since-build="181"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>

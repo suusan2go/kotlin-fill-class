@@ -21,7 +21,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 intellij {
-    version '15.0.4'
+    version '2018.1.5'
     plugins = ['Kotlin']
     pluginName 'kotlin-fill-class'
     publishPlugin {
