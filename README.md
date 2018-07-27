@@ -6,6 +6,10 @@ Inspired by [go-fill-struct](https://github.com/s-kostyaev/go-fill-struct)
 This plugin add quick fix action for invalid constructor expression.
 ![fill-class](https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif)
 
+## How to install
+Install from jetbrains plugins repository.
+https://plugins.jetbrains.com/plugin/10942-kotlin-fill-class
+
 ## TODO
 - Fill default parameter for non primitive type. Currently this plugin dose not support class like below. 
 ```kotlin
@@ -19,7 +23,4 @@ data class User(
 ```
 
 - Fill parameters for non primary constructor. Currently this plugin only fill parameters for primary constructor.
-
-## How to install
-TBD
 
