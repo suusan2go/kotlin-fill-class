@@ -10,12 +10,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    update target intellij version to 2018.1.5
+    update target intellij version to 2018.2
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="181"/>
+    <idea-version since-build="182"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
