@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    update target intellij version to 2018.2
+    fix issue #2 remove unnecessary d for Double
     ]]>
     </change-notes>
 

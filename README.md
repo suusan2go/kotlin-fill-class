@@ -24,3 +24,5 @@ data class User(
 
 - Fill parameters for non primary constructor. Currently this plugin only fill parameters for primary constructor.
 
+## Thanks
+- @Pluu @naofumi-fujii fix #2 Double type fill error
