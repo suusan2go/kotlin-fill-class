@@ -59,7 +59,7 @@ class FillClassIntention(
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
             KotlinBuiltIns.isChar(type) -> "''"
-            KotlinBuiltIns.isDouble(type) -> "0.0d"
+            KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) || KotlinBuiltIns.isLong(type) || KotlinBuiltIns.isShort(type) -> "0"
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "emptyArray()"
