@@ -1,6 +1,6 @@
 # kotlin-fill-class plugin
 Intellij plugin that provide quick fix action for empty constructor to fill property with default value.
-Inspired by [go-fill-struct](https://github.com/s-kostyaev/go-fill-struct)
+Inspired by Go [fillstruct](https://github.com/davidrjenni/reftools/tree/master/cmd/fillstruct)
 
 ## Usage
 This plugin add quick fix action for invalid constructor expression.
