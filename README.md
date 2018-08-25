@@ -4,7 +4,7 @@ Inspired by Go [fillstruct](https://github.com/davidrjenni/reftools/tree/master/
 
 ## Usage
 This plugin add quick fix action for invalid constructor expression.
-![fill-class](https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif)
+![fill-class](https://user-images.githubusercontent.com/8841470/44616661-ce042280-a88e-11e8-81fe-b7ce5e7c4871.gif)
 
 ## How to install
 Install from jetbrains plugins repository.
