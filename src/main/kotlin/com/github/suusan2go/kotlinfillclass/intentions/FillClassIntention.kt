@@ -1,42 +1,49 @@
 package com.github.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
-import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.idea.caches.resolve.analyzeAndGetResult
-import org.jetbrains.kotlin.idea.quickfix.KotlinQuickFixAction
+import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
+import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
 import org.jetbrains.kotlin.util.constructors
 
 
-class FillClassIntention(
-        element: KtCallExpression
-): KotlinQuickFixAction<KtCallExpression>(element) {
-
-    override fun getFamilyName(): String {
-        return text
+class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueArgumentList::class.java, "Fill class constructor") {
+    override fun isApplicableTo(element: KtValueArgumentList, caretOffset: Int): Boolean {
+        val callExpression = element.getStrictParentOfType<KtCallExpression>() ?: return false
+        val calleeExpression = callExpression.calleeExpression ?: return false
+        val analysisResult = calleeExpression.analyzeAndGetResult()
+        val classDescriptor = calleeExpression
+                .getReferenceTargets(analysisResult.bindingContext)
+                .mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
+                .distinct()
+                .singleOrNull() ?: return false
+        val parameters = classDescriptor.constructors.first().valueParameters
+        return element.arguments.size != parameters.size
     }
 
-    override fun getText(): String = "Fill class constructor"
-
-    override fun invoke(project: Project, editor: Editor?, file: KtFile) {
-        val analysisResult = element?.calleeExpression?.analyzeAndGetResult() ?: return
-        val classDescriptor = element
-                ?.calleeExpression
-                ?.getReferenceTargets(analysisResult.bindingContext)
-                ?.mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
-                ?.distinct()
-                ?.singleOrNull() ?: return
+    override fun applyTo(element: KtValueArgumentList, editor: Editor?) {
+        val callExpression = element.getStrictParentOfType<KtCallExpression>() ?: return
+        val calleeExpression = callExpression.calleeExpression ?: return
+        val analysisResult = calleeExpression.analyzeAndGetResult()
+        val classDescriptor = calleeExpression
+                .getReferenceTargets(analysisResult.bindingContext)
+                .mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
+                .distinct()
+                .singleOrNull() ?: return
         val parameters = classDescriptor.constructors.first().valueParameters
 
-        val factory = KtPsiFactory(project = project)
+        val factory = KtPsiFactory(project = element.project)
         val argument = factory.createExpression("""${classDescriptor.name.identifier}(
             ${createParameterSetterExpression(parameters)}
             )""".trimMargin())
-        element?.replace(argument)
+        callExpression.replace(argument)
         return
     }
 

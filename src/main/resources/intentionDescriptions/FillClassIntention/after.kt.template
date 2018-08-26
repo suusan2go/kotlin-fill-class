@@ -1,0 +1,5 @@
+data class User(val id: Int, val name: String, val email: String)
+
+fun foo() {
+    User<spot>(id = 0, name = "", email = "")</spot>
+}
