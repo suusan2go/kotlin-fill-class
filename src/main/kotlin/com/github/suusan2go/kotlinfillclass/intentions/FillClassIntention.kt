@@ -16,49 +16,42 @@ import org.jetbrains.kotlin.util.constructors
 
 class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueArgumentList::class.java, "Fill class constructor") {
     override fun isApplicableTo(element: KtValueArgumentList, caretOffset: Int): Boolean {
-        val callExpression = element.getStrictParentOfType<KtCallExpression>() ?: return false
-        val calleeExpression = callExpression.calleeExpression ?: return false
-        val analysisResult = calleeExpression.analyzeAndGetResult()
-        val classDescriptor = calleeExpression
-                .getReferenceTargets(analysisResult.bindingContext)
-                .mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
-                .distinct()
-                .singleOrNull() ?: return false
-        val parameters = classDescriptor.constructors.first().valueParameters
+        val parameters = element.getValueParameters() ?: return false
         return element.arguments.size != parameters.size
     }
 
     override fun applyTo(element: KtValueArgumentList, editor: Editor?) {
-        val callExpression = element.getStrictParentOfType<KtCallExpression>() ?: return
-        val calleeExpression = callExpression.calleeExpression ?: return
+        val parameters = element.getValueParameters() ?: return
+        createParameterSetterExpression(element, parameters)
+    }
+
+    private fun KtValueArgumentList.getValueParameters(): MutableList<ValueParameterDescriptor>? {
+        val callExpression = getStrictParentOfType<KtCallExpression>() ?: return null
+        val calleeExpression = callExpression.calleeExpression ?: return null
         val analysisResult = calleeExpression.analyzeAndGetResult()
         val classDescriptor = calleeExpression
                 .getReferenceTargets(analysisResult.bindingContext)
                 .mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
                 .distinct()
-                .singleOrNull() ?: return
-        val parameters = classDescriptor.constructors.first().valueParameters
-
-        val factory = KtPsiFactory(project = element.project)
-        val argument = factory.createExpression("""${classDescriptor.name.identifier}(
-            ${createParameterSetterExpression(parameters)}
-            )""".trimMargin())
-        callExpression.replace(argument)
-        return
+                .singleOrNull() ?: return null
+        return classDescriptor.constructors.first().valueParameters
     }
 
     override fun startInWriteAction() = true
 
-    private fun createParameterSetterExpression(parameters: List<ValueParameterDescriptor>): String {
-        var result = ""
-        parameters.forEach { parameter ->
-            var parameterString = "${parameter.name.identifier} = ${createDefaultValueFromParameter(parameter)},\n".let {
-                if(parameters.last() == parameter) return@let it.replace(",\n","")
-                it
-            }
-            result = "$result$parameterString"
+    private fun createParameterSetterExpression(element: KtValueArgumentList, parameters: List<ValueParameterDescriptor>) {
+        val arguments = element.arguments
+        val argumentNames = arguments.map { it.getArgumentName()?.asName?.identifier }.filterNotNull()
+        val factory = KtPsiFactory(element.project)
+        parameters.forEachIndexed { index, parameter ->
+            if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
+            if (argumentNames.contains(parameter.name.identifier)) return@forEachIndexed
+            val newArgument = factory.createArgument(
+                    expression = factory.createExpression(createDefaultValueFromParameter(parameter)),
+                    name = parameter.name
+            )
+            element.addArgument(newArgument)
         }
-        return result
     }
 
     private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String {
