@@ -41,7 +41,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
 
     private fun createParameterSetterExpression(element: KtValueArgumentList, parameters: List<ValueParameterDescriptor>) {
         val arguments = element.arguments
-        val argumentNames = arguments.map { it.getArgumentName()?.asName?.identifier }.filterNotNull()
+        val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
         val factory = KtPsiFactory(element.project)
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
