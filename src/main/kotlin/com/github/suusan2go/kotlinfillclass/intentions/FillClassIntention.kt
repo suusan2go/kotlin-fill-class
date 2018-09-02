@@ -46,15 +46,16 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (argumentNames.contains(parameter.name.identifier)) return@forEachIndexed
+            val defaultValue = createDefaultValueFromParameter(parameter)
             val newArgument = factory.createArgument(
-                    expression = factory.createExpression(createDefaultValueFromParameter(parameter)),
+                    expression = defaultValue?.let { factory.createExpression(it) },
                     name = parameter.name
             )
             element.addArgument(newArgument)
         }
     }
 
-    private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String {
+    private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String? {
         val type = parameter.type
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
@@ -68,7 +69,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             KotlinBuiltIns.isListOrNullableList(type) -> "emptyList()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "emptySet()"
             type.isMarkedNullable -> "null"
-            else -> ""
+            else -> null
         }
     }
 }
