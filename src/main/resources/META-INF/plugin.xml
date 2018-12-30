@@ -20,8 +20,11 @@
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
 
-    <extensions defaultExtensionNs="org.jetbrains.kotlin">
-        <quickFixContributor implementation="com.github.suusan2go.kotlinfillclass.quickfix.QuickFixRegistrar"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <intentionAction>
+            <className>com.github.suusan2go.kotlinfillclass.intentions.FillClassIntention</className>
+            <category>Kotlin</category>
+        </intentionAction>
     </extensions>
 
     <application-components>
