@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    fix issue #2 remove unnecessary d for Double
+    fix issue #7 can't install at intellij 2018.3.*
     ]]>
     </change-notes>
 
