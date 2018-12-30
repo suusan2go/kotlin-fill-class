@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    fix issue #7 can't install at intellij 2018.3.*
+    Convert to intention & Support non-empty constructor #6
     ]]>
     </change-notes>
 
