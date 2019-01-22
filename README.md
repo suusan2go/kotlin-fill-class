@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/suusan2go/kotlin-fill-class.svg?style=svg)](https://circleci.com/gh/suusan2go/kotlin-fill-class)
+
 # kotlin-fill-class plugin
 Intellij plugin that provide quick fix action for empty constructor to fill property with default value.
 Inspired by Go [fillstruct](https://github.com/davidrjenni/reftools/tree/master/cmd/fillstruct)
