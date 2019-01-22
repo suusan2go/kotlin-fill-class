@@ -1,4 +1,5 @@
 [![CircleCI](https://circleci.com/gh/suusan2go/kotlin-fill-class.svg?style=svg)](https://circleci.com/gh/suusan2go/kotlin-fill-class)
+[![jetBrains](https://img.shields.io/jetbrains/plugin/d/10942-kotlin-fill-class.svg)](https://plugins.jetbrains.com/plugin/10942-kotlin-fill-class)
 
 # kotlin-fill-class plugin
 Intellij plugin that provide quick fix action for empty constructor to fill property with default value.
