@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
 import org.jetbrains.kotlin.util.constructors
 
-
 class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueArgumentList::class.java, "Fill class constructor") {
     override fun isApplicableTo(element: KtValueArgumentList, caretOffset: Int): Boolean {
         val parameters = element.getValueParameters() ?: return false
