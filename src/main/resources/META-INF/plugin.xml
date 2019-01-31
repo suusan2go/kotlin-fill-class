@@ -10,12 +10,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    Convert to intention & Support non-empty constructor #6
+    support LATEST-EAP-SNAPSHOT 2019.1
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="183"/>
+    <idea-version since-build="LATEST-EAP-SNAPSHOT"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
