@@ -2,41 +2,38 @@ package com.github.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.openapi.editor.Editor
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.descriptors.ConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
-import org.jetbrains.kotlin.idea.caches.resolve.analyzeAndGetResult
+import org.jetbrains.kotlin.idea.caches.resolve.analyze
 import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
-import org.jetbrains.kotlin.util.constructors
+import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 
 class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueArgumentList::class.java, "Fill class constructor") {
     override fun isApplicableTo(element: KtValueArgumentList, caretOffset: Int): Boolean {
-        val parameters = element.getValueParameters() ?: return false
-        return element.arguments.size != parameters.size
+        val descriptor = element.descriptor() ?: return false
+        if (descriptor.valueParameters.size == element.arguments.size) return false
+        text = (if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function")
+        return true
     }
 
     override fun applyTo(element: KtValueArgumentList, editor: Editor?) {
-        val parameters = element.getValueParameters() ?: return
+        val parameters = element.descriptor()?.valueParameters ?: return
         createParameterSetterExpression(element, parameters)
     }
 
-    private fun KtValueArgumentList.getValueParameters(): MutableList<ValueParameterDescriptor>? {
-        val callExpression = getStrictParentOfType<KtCallExpression>() ?: return null
-        val calleeExpression = callExpression.calleeExpression ?: return null
-        val analysisResult = calleeExpression.analyzeAndGetResult()
-        val classDescriptor = calleeExpression
-                .getReferenceTargets(analysisResult.bindingContext)
-                .mapNotNull { (it as? ConstructorDescriptor)?.containingDeclaration }
-                .distinct()
-                .singleOrNull() ?: return null
-        return classDescriptor.constructors.first().valueParameters
+    private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {
+        val calleeExpression = getStrictParentOfType<KtCallExpression>()?.calleeExpression ?: return null
+        val context = calleeExpression.analyze(BodyResolveMode.PARTIAL)
+        val descriptor = calleeExpression.getReferenceTargets(context).firstOrNull() as? FunctionDescriptor
+        return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
     }
-
-    override fun startInWriteAction() = true
 
     private fun createParameterSetterExpression(element: KtValueArgumentList, parameters: List<ValueParameterDescriptor>) {
         val arguments = element.arguments
@@ -44,17 +41,14 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         val factory = KtPsiFactory(element.project)
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
-            if (argumentNames.contains(parameter.name.identifier)) return@forEachIndexed
+            if (parameter.name.identifier in argumentNames) return@forEachIndexed
             val defaultValue = createDefaultValueFromParameter(parameter)
-            val newArgument = factory.createArgument(
-                    expression = defaultValue?.let { factory.createExpression(it) },
-                    name = parameter.name
-            )
+            val newArgument = factory.createArgument(factory.createExpression(defaultValue), parameter.name)
             element.addArgument(newArgument)
         }
     }
 
-    private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String? {
+    private fun createDefaultValueFromParameter(parameter: ValueParameterDescriptor): String {
         val type = parameter.type
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
@@ -68,7 +62,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             KotlinBuiltIns.isListOrNullableList(type) -> "emptyList()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "emptySet()"
             type.isMarkedNullable -> "null"
-            else -> null
+            else -> "TODO()"
         }
     }
 }
