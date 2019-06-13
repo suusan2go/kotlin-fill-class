@@ -5,12 +5,12 @@
     <vendor email="ksuzuki180@gmail.com" url="https://github.com/suusan2go">suusan2go</vendor>
 
     <description><![CDATA[
-        <p>Intellij plugin that provide quick fix action for empty constructor to fill property with default value.</p>
-        <a target="_blank" href="https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif"><img src="https://user-images.githubusercontent.com/8841470/42932763-24e15c72-8b7e-11e8-9e60-ee2f8095d6cc.gif" alt="fill-class" style="max-width:100%;"></a></p>
+        <p>Intellij plugin that provide intention action for empty constructor or function to fill property with default value.</p>
+        <a target="_blank" href="https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif"><img src="https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif" alt="fill-class" style="max-width:100%;"></a></p>
     ]]></description>
 
     <change-notes><![CDATA[
-    Add Support for build 191.* version of Intellij
+    Add Support for Filling function call arguments
     ]]>
     </change-notes>
 
