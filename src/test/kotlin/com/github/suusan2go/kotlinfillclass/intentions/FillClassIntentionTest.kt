@@ -38,7 +38,7 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
             class User(val name: String, val age: Int)
             fun foo(s: String, t: Int, u: User) {}
             fun test() {
-                foo(s = "", t = 0, u = TODO())
+                foo(s = "", t = 0, u =)
             }
         """, "Fill function")
     }
