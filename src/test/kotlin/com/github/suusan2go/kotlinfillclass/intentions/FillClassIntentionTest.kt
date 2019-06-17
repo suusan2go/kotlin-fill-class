@@ -38,7 +38,7 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
             class User(val name: String, val age: Int)
             fun foo(s: String, t: Int, u: User) {}
             fun test() {
-                foo(s = "", t = 0, u =)
+                foo(s = "", t = 0, u = User(name = "", age = 0))
             }
         """, "Fill function")
     }
@@ -53,6 +53,26 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
         """)
     }
 
+    fun `test fill for non primitive types`() {
+        doAvailableTest("""
+            class A(a1: String, a2: Int)
+            class B(b1: Int, b2: String, a: A)
+            class C
+            class D(a: A, b: B, c: C, r: Runnable)
+            fun test() {
+                D(<caret>)
+            }
+        """, """
+            class A(a1: String, a2: Int)
+            class B(b1: Int, b2: String, a: A)
+            class C
+            class D(a: A, b: B, c: C, r: Runnable)
+            fun test() {
+                D(a = A(a1 = "", a2 = 0), b = B(b1 = 0, b2 = "", a = A(a1 = "", a2 = 0)), c = C(), r =)
+            }
+        """)
+    }
+    
     private val intention = FillClassIntention()
 
     private fun doAvailableTest(before: String, after: String, intentionText: String = "Fill class constructor") {
