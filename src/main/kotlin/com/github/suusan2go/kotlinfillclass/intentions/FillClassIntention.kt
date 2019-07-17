@@ -59,11 +59,12 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) || KotlinBuiltIns.isLong(type) || KotlinBuiltIns.isShort(type) -> "0"
-            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "emptyArray()"
+            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
             KotlinBuiltIns.isString(type) -> "\"\""
-            KotlinBuiltIns.isListOrNullableList(type) -> "emptyList()"
-            KotlinBuiltIns.isSetOrNullableSet(type) -> "emptySet()"
+            KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
+            KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
+            KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
             type.isMarkedNullable -> "null"
             else -> null
         }
