@@ -43,7 +43,6 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
         """, "Fill function")
     }
 
-
     fun `test can't fill function`() {
         doUnavailableTest("""
             fun foo(s: String, t: Int) {}            
@@ -72,7 +71,7 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
             }
         """)
     }
-    
+
     private val intention = FillClassIntention()
 
     private fun doAvailableTest(before: String, after: String, intentionText: String = "Fill class constructor") {
@@ -80,7 +79,7 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         myFixture.launchAction(intention)
         check(intentionText == intention.text) {
-            "Intention text mismatch. [expected]$intentionText [actual]${intention.text}"            
+            "Intention text mismatch. [expected]$intentionText [actual]${intention.text}"
         }
         myFixture.checkResult(after.trimIndent())
     }
@@ -96,6 +95,6 @@ class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
     private fun checkCaret(before: String) {
         check("<caret>" in before) {
             "Please, add `<caret>` marker to\n$before"
-        }        
+        }
     }
 }

@@ -72,7 +72,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
                     ?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
             val callExpression = if (valueParameters != null) {
                 (factory.createExpression("$type()") as? KtCallExpression)?.also {
-                    it.valueArgumentList?.fillArguments(valueParameters)  
+                    it.valueArgumentList?.fillArguments(valueParameters)
                 }
             } else {
                 null
