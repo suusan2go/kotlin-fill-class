@@ -10,7 +10,8 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    Add Support for Filling function call arguments
+    Add support for Non primitive type constructor.
+    Change collection fill from "empty" to "of".
     ]]>
     </change-notes>
 
