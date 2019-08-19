@@ -27,7 +27,7 @@ jobs:
           keys:
           - v1-dependencies-{{ checksum "build.gradle" }}
           - v1-dependencies-
-      - run: ./gradlew ktlintFormat
+      - run: ./gradlew ktlint
 
 workflows:
   version: 2
