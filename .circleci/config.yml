@@ -28,6 +28,17 @@ jobs:
           - v1-dependencies-{{ checksum "build.gradle" }}
           - v1-dependencies-
       - run: ./gradlew ktlint
+  test:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v1-dependencies-
+      - run: ./gradlew test
 
 workflows:
   version: 2
@@ -35,5 +46,8 @@ workflows:
     jobs:
       - install-dependency
       - lint:
+          requires:
+            - install-dependency
+      - test:
           requires:
             - install-dependency
