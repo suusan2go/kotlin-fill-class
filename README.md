@@ -13,20 +13,6 @@ This plugin add intention action for invalid constructor or function expression.
 Install from jetbrains plugins repository.
 https://plugins.jetbrains.com/plugin/10942-kotlin-fill-class
 
-## TODO
-- Fill default parameter for non primitive type. Currently this plugin dose not support class like below. 
-```kotlin
-data class Address(zipCode: String)
-
-data class User(
-       val name: String,
-       val age: Int,
-       val address: Address  // Currently this plugin fills empty value for this parameter
-)
-```
-
-- Fill parameters for non primary constructor. Currently this plugin only fill parameters for primary constructor.
-
 ## Thanks
 - [@t-kameyama](https://github.com/t-kameyama) Fill function call arguments [#17](https://github.com/suusan2go/kotlin-fill-class/pull/17)
 - [@shiraji](https://github.com/shiraji) Convert to intention & Support non-empty constructor [#6](https://github.com/suusan2go/kotlin-fill-class/pull/6)
