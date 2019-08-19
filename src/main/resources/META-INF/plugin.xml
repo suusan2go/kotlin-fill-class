@@ -10,12 +10,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    Add Support for Filling function call arguments
+    Add support for Non primitive type constructor.
+    Change collection fill from "empty" to "of".
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="191"/>
+    <idea-version since-build="192"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>

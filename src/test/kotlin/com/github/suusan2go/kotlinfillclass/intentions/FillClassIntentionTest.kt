@@ -1,9 +1,9 @@
 package com.github.suusan2go.kotlinfillclass.intentions
 
-import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixtureTestCase
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.jetbrains.kotlin.idea.KotlinFileType
 
-class FillClassIntentionTest : LightPlatformCodeInsightFixtureTestCase() {
+class FillClassIntentionTest : BasePlatformTestCase() {
     fun `test fill class constructor`() {
         doAvailableTest("""
             class User(val name: String, val age: Int)
