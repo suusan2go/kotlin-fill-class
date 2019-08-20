@@ -22,7 +22,7 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 intellij {
     version '2019.2'
-    plugins = ['Kotlin']
+    plugins = ['Kotlin', 'java']
     pluginName 'kotlin-fill-class'
     publishPlugin {
         username 'ksuzuki180'
