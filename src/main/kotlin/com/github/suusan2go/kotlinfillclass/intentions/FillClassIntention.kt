@@ -2,13 +2,23 @@ package com.github.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.openapi.editor.Editor
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.descriptors.*
+import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
+import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
 import org.jetbrains.kotlin.idea.intentions.callExpression
-import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
+import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtQualifiedExpression
+import org.jetbrains.kotlin.psi.KtValueArgument
+import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
@@ -31,6 +41,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         val calleeExpression = getStrictParentOfType<KtCallExpression>()?.calleeExpression ?: return null
         val context = calleeExpression.analyze(BodyResolveMode.PARTIAL)
         val descriptor = calleeExpression.getReferenceTargets(context).firstOrNull() as? FunctionDescriptor
+        if (descriptor is JavaCallableMemberDescriptor) return null
         return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
     }
 

@@ -115,17 +115,52 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """, dependencies = listOf(dependency))
     }
 
+    fun `test call java constructor`() {
+        val javaDependency = """
+            public class Java {
+                public Java(String str) {
+                }
+            }
+        """
+        doUnavailableTest("""
+            fun test() {
+                Java(<caret>)
+            }
+        """, javaDependencies = listOf(javaDependency))
+    }
+
+    fun `test call java method`() {
+        val javaDependency = """
+            public class Java {
+                public Java(String str) {
+                }
+            
+                public void foo(Java java) {
+                }
+            }
+        """
+        doUnavailableTest("""
+            fun test() {
+                Java("").foo(<caret>)
+            }
+        """, javaDependencies = listOf(javaDependency))
+    }
+
     private val intention = FillClassIntention()
 
     private fun doAvailableTest(
-            before: String,
-            after: String,
-            intentionText: String = "Fill class constructor",
-            dependencies: List<String> = emptyList()
+        before: String,
+        after: String,
+        intentionText: String = "Fill class constructor",
+        dependencies: List<String> = emptyList(),
+        javaDependencies: List<String> = emptyList()
     ) {
         checkCaret(before)
         dependencies.forEachIndexed { index, dependency ->
-            myFixture.configureByText("dependency${index}.kt", dependency.trimIndent())
+            myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
+        }
+        javaDependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
         }
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         myFixture.launchAction(intention)
@@ -135,8 +170,18 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         myFixture.checkResult(after.trimIndent())
     }
 
-    private fun doUnavailableTest(before: String) {
+    private fun doUnavailableTest(
+        before: String,
+        dependencies: List<String> = emptyList(),
+        javaDependencies: List<String> = emptyList()
+    ) {
         checkCaret(before)
+        dependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
+        }
+        javaDependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
+        }
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         check(intention.familyName !in myFixture.availableIntentions.mapNotNull { it.familyName }) {
             "Intention should not be available"
