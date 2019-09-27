@@ -4,11 +4,11 @@ import com.intellij.openapi.editor.Editor
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
+import org.jetbrains.kotlin.idea.core.ShortenReferences
+import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
-import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.psi.KtValueArgument
-import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.idea.intentions.callExpression
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getReferenceTargets
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
@@ -41,7 +41,11 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
-            addArgument(createDefaultValueArgument(parameter, factory))
+            val added = addArgument(createDefaultValueArgument(parameter, factory))
+            val argumentExpression = added.getArgumentExpression()
+            if (argumentExpression is KtQualifiedExpression) {
+                ShortenReferences.DEFAULT.process(argumentExpression)
+            }
         }
     }
 
@@ -72,15 +76,17 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             return factory.createArgument(null, parameter.name)
         }
 
+        val fqName = descriptor?.importableFqName?.asString()
         val valueParameters =
                 descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
-        val callExpression = if (valueParameters != null) {
-            (factory.createExpression("$type()") as? KtCallExpression)?.also {
-                it.valueArgumentList?.fillArguments(valueParameters)
+        val argumentExpression = if (fqName != null && valueParameters != null) {
+            (factory.createExpression("$fqName()")).also {
+                val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
+                callExpression?.valueArgumentList?.fillArguments(valueParameters)
             }
         } else {
             null
         }
-        return factory.createArgument(callExpression, parameter.name)
+        return factory.createArgument(argumentExpression, parameter.name)
     }
 }

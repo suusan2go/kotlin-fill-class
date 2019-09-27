@@ -96,10 +96,37 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """)
     }
 
+    fun `test add import directives`() {
+        val dependency = """
+            package com.example
+
+            class A
+            class B(a: A)
+        """
+        doAvailableTest("""
+            import com.example.B
+            
+            val b = B(<caret>)
+        """, """
+            import com.example.A
+            import com.example.B
+            
+            val b = B(a = A())
+        """, dependencies = listOf(dependency))
+    }
+
     private val intention = FillClassIntention()
 
-    private fun doAvailableTest(before: String, after: String, intentionText: String = "Fill class constructor") {
+    private fun doAvailableTest(
+            before: String,
+            after: String,
+            intentionText: String = "Fill class constructor",
+            dependencies: List<String> = emptyList()
+    ) {
         checkCaret(before)
+        dependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency${index}.kt", dependency.trimIndent())
+        }
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         myFixture.launchAction(intention)
         check(intentionText == intention.text) {
