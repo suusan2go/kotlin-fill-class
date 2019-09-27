@@ -2,10 +2,7 @@ package com.github.suusan2go.kotlinfillclass.intentions
 
 import com.intellij.openapi.editor.Editor
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
-import org.jetbrains.kotlin.descriptors.FunctionDescriptor
-import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
-import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
 import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -65,19 +62,25 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             type.isMarkedNullable -> "null"
             else -> null
         }
-        return if (defaultValue != null) {
-            factory.createArgument(factory.createExpression(defaultValue), parameter.name)
-        } else {
-            val valueParameters = (type.constructor.declarationDescriptor as? LazyClassDescriptor)
-                    ?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
-            val callExpression = if (valueParameters != null) {
-                (factory.createExpression("$type()") as? KtCallExpression)?.also {
-                    it.valueArgumentList?.fillArguments(valueParameters)
-                }
-            } else {
-                null
-            }
-            factory.createArgument(callExpression, parameter.name)
+        if (defaultValue != null) {
+            return factory.createArgument(factory.createExpression(defaultValue), parameter.name)
         }
+
+        val descriptor = type.constructor.declarationDescriptor as? LazyClassDescriptor
+        val modality = descriptor?.modality
+        if (descriptor?.kind == ClassKind.ENUM_CLASS || modality == Modality.ABSTRACT || modality == Modality.SEALED) {
+            return factory.createArgument(null, parameter.name)
+        }
+
+        val valueParameters =
+                descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
+        val callExpression = if (valueParameters != null) {
+            (factory.createExpression("$type()") as? KtCallExpression)?.also {
+                it.valueArgumentList?.fillArguments(valueParameters)
+            }
+        } else {
+            null
+        }
+        return factory.createArgument(callExpression, parameter.name)
     }
 }

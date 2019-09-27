@@ -72,6 +72,30 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """)
     }
 
+    fun `test don't add default value for enum,abstract,sealed`() {
+        doAvailableTest("""
+            enum class A(val a: String) {
+                Foo("foo"), Bar("bar"), Baz("baz");
+            }
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(a: A, b: B, c: C)
+            fun test() {
+                Test(<caret>)
+            }
+        """, """
+            enum class A(val a: String) {
+                Foo("foo"), Bar("bar"), Baz("baz");
+            }
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(a: A, b: B, c: C)
+            fun test() {
+                Test(a =, b =, c =)
+            }
+        """)
+    }
+
     private val intention = FillClassIntention()
 
     private fun doAvailableTest(before: String, after: String, intentionText: String = "Fill class constructor") {
