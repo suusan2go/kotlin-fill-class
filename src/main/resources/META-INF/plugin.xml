@@ -10,8 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    Add support for Non primitive type constructor.
-    Change collection fill from "empty" to "of".
+        <a target="_blank" href="https://github.com/suusan2go/kotlin-fill-class/issues/26">Don't add default value for enum/abstract/sealed classes #26</a>
+        <a target="_blank" href="https://github.com/suusan2go/kotlin-fill-class/issues/28">Don't suggest for Java #28</a>
+        <a target="_blank" href="https://github.com/suusan2go/kotlin-fill-class/issues/27">Add import directives #27</a>
     ]]>
     </change-notes>
 
