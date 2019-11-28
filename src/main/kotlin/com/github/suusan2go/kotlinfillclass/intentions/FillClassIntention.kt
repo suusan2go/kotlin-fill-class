@@ -3,13 +3,20 @@ package com.github.suusan2go.kotlinfillclass.intentions
 import com.intellij.openapi.editor.Editor
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
+import org.jetbrains.kotlin.idea.core.ShortenReferences
+import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
+import org.jetbrains.kotlin.idea.intentions.callExpression
+import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
@@ -34,6 +41,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         val calleeExpression = getStrictParentOfType<KtCallExpression>()?.calleeExpression ?: return null
         val context = calleeExpression.analyze(BodyResolveMode.PARTIAL)
         val descriptor = calleeExpression.getReferenceTargets(context).firstOrNull() as? FunctionDescriptor
+        if (descriptor is JavaCallableMemberDescriptor) return null
         return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
     }
 
@@ -44,7 +52,11 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
-            addArgument(createDefaultValueArgument(parameter, factory))
+            val added = addArgument(createDefaultValueArgument(parameter, factory))
+            val argumentExpression = added.getArgumentExpression()
+            if (argumentExpression is KtQualifiedExpression) {
+                ShortenReferences.DEFAULT.process(argumentExpression)
+            }
         }
     }
 
@@ -65,19 +77,27 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
             type.isMarkedNullable -> "null"
             else -> null
         }
-        return if (defaultValue != null) {
-            factory.createArgument(factory.createExpression(defaultValue), parameter.name)
-        } else {
-            val valueParameters = (type.constructor.declarationDescriptor as? LazyClassDescriptor)
-                    ?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
-            val callExpression = if (valueParameters != null) {
-                (factory.createExpression("$type()") as? KtCallExpression)?.also {
-                    it.valueArgumentList?.fillArguments(valueParameters)
-                }
-            } else {
-                null
-            }
-            factory.createArgument(callExpression, parameter.name)
+        if (defaultValue != null) {
+            return factory.createArgument(factory.createExpression(defaultValue), parameter.name)
         }
+
+        val descriptor = type.constructor.declarationDescriptor as? LazyClassDescriptor
+        val modality = descriptor?.modality
+        if (descriptor?.kind == ClassKind.ENUM_CLASS || modality == Modality.ABSTRACT || modality == Modality.SEALED) {
+            return factory.createArgument(null, parameter.name)
+        }
+
+        val fqName = descriptor?.importableFqName?.asString()
+        val valueParameters =
+                descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
+        val argumentExpression = if (fqName != null && valueParameters != null) {
+            (factory.createExpression("$fqName()")).also {
+                val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
+                callExpression?.valueArgumentList?.fillArguments(valueParameters)
+            }
+        } else {
+            null
+        }
+        return factory.createArgument(argumentExpression, parameter.name)
     }
 }

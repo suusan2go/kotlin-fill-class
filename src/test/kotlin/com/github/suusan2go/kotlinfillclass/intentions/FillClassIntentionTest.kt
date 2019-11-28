@@ -72,10 +72,96 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """)
     }
 
+    fun `test don't add default value for enum,abstract,sealed`() {
+        doAvailableTest("""
+            enum class A(val a: String) {
+                Foo("foo"), Bar("bar"), Baz("baz");
+            }
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(a: A, b: B, c: C)
+            fun test() {
+                Test(<caret>)
+            }
+        """, """
+            enum class A(val a: String) {
+                Foo("foo"), Bar("bar"), Baz("baz");
+            }
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(a: A, b: B, c: C)
+            fun test() {
+                Test(a =, b =, c =)
+            }
+        """)
+    }
+
+    fun `test add import directives`() {
+        val dependency = """
+            package com.example
+
+            class A
+            class B(a: A)
+        """
+        doAvailableTest("""
+            import com.example.B
+            
+            val b = B(<caret>)
+        """, """
+            import com.example.A
+            import com.example.B
+            
+            val b = B(a = A())
+        """, dependencies = listOf(dependency))
+    }
+
+    fun `test call java constructor`() {
+        val javaDependency = """
+            public class Java {
+                public Java(String str) {
+                }
+            }
+        """
+        doUnavailableTest("""
+            fun test() {
+                Java(<caret>)
+            }
+        """, javaDependencies = listOf(javaDependency))
+    }
+
+    fun `test call java method`() {
+        val javaDependency = """
+            public class Java {
+                public Java(String str) {
+                }
+            
+                public void foo(Java java) {
+                }
+            }
+        """
+        doUnavailableTest("""
+            fun test() {
+                Java("").foo(<caret>)
+            }
+        """, javaDependencies = listOf(javaDependency))
+    }
+
     private val intention = FillClassIntention()
 
-    private fun doAvailableTest(before: String, after: String, intentionText: String = "Fill class constructor") {
+    private fun doAvailableTest(
+        before: String,
+        after: String,
+        intentionText: String = "Fill class constructor",
+        dependencies: List<String> = emptyList(),
+        javaDependencies: List<String> = emptyList()
+    ) {
         checkCaret(before)
+        dependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
+        }
+        javaDependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
+        }
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         myFixture.launchAction(intention)
         check(intentionText == intention.text) {
@@ -84,8 +170,18 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         myFixture.checkResult(after.trimIndent())
     }
 
-    private fun doUnavailableTest(before: String) {
+    private fun doUnavailableTest(
+        before: String,
+        dependencies: List<String> = emptyList(),
+        javaDependencies: List<String> = emptyList()
+    ) {
         checkCaret(before)
+        dependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
+        }
+        javaDependencies.forEachIndexed { index, dependency ->
+            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
+        }
         myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
         check(intention.familyName !in myFixture.availableIntentions.mapNotNull { it.familyName }) {
             "Intention should not be available"
