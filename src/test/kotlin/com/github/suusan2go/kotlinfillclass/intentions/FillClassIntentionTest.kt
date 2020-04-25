@@ -146,6 +146,16 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """, javaDependencies = listOf(javaDependency))
     }
 
+    fun `test fill super type call entry`() {
+        doAvailableTest("""
+            open class C(p1: Int, p2: Int)
+            class D : C(<caret>)
+        """, """
+            open class C(p1: Int, p2: Int)
+            class D : C(p1 = 0, p2 = 0)
+        """)
+    }
+
     private val intention = FillClassIntention()
 
     private fun doAvailableTest(
