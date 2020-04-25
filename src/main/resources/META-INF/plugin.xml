@@ -10,12 +10,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    Add support for IntelliJ 2019.3
+    Add support for IntelliJ 2020.1
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="192" until-build="193.*"/>
+    <idea-version since-build="201" until-build="201.*"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>
