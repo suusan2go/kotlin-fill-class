@@ -7,8 +7,5 @@
  * in the user guide at https://docs.gradle.org/4.8.1/userguide/multi_project_builds.html
  */
 
-rootProject.name = 'kotlinfillclass'
-rootProject.name = 'kotlinfillclass'
-rootProject.name = 'kotlinfillclass'
 rootProject.name = 'kotlin-fill-class'
 
