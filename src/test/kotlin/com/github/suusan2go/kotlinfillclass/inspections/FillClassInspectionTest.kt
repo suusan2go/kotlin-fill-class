@@ -173,16 +173,31 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """, withoutDefaultValues = true)
     }
 
+    fun `test do not fill default arguments`() {
+        doAvailableTest("""
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(<caret>)
+            }
+        """, """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(name = "")
+            }
+        """, withoutDefaultArguments = true)
+    }
+
     private fun doAvailableTest(
         before: String,
         after: String,
         problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
-        withoutDefaultValues: Boolean = false
+        withoutDefaultValues: Boolean = false,
+        withoutDefaultArguments: Boolean = false
     ) {
         val highlightInfo = doHighlighting(
-            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues
+            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues, withoutDefaultArguments
         )
         check(highlightInfo != null) { "Problems should be detected at caret" }
         myFixture.launchAction(myFixture.findSingleIntention(problemDescription))
@@ -194,10 +209,11 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
-        withoutDefaultValues: Boolean = false
+        withoutDefaultValues: Boolean = false,
+        withoutDefaultArguments: Boolean = false
     ) {
         val highlightInfo = doHighlighting(
-            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues
+            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues, withoutDefaultArguments
         )
         check(highlightInfo == null) { "No problems should be detected at caret" }
     }
@@ -205,9 +221,10 @@ class FillClassInspectionTest : BasePlatformTestCase() {
     private fun doHighlighting(
         code: String,
         problemDescription: String = "Fill class constructor",
-        dependencies: List<String> = emptyList(),
-        javaDependencies: List<String> = emptyList(),
-        withoutDefaultValues: Boolean = false
+        dependencies: List<String>,
+        javaDependencies: List<String>,
+        withoutDefaultValues: Boolean,
+        withoutDefaultArguments: Boolean
     ): HighlightInfo? {
         check("<caret>" in code) { "Please, add `<caret>` marker to\n$code" }
 
@@ -220,7 +237,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
         val inspection = FillClassInspection(
-            withoutDefaultValues = withoutDefaultValues
+            withoutDefaultValues = withoutDefaultValues,
+            withoutDefaultArguments = withoutDefaultArguments
         )
         myFixture.enableInspections(inspection)
 

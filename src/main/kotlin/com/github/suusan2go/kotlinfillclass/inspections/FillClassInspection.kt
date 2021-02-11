@@ -30,7 +30,8 @@ import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import javax.swing.JComponent
 
 class FillClassInspection(
-    @JvmField var withoutDefaultValues: Boolean = false
+    @JvmField var withoutDefaultValues: Boolean = false,
+    @JvmField var withoutDefaultArguments: Boolean = false
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -39,13 +40,18 @@ class FillClassInspection(
         val descriptor = element.descriptor() ?: return
         if (descriptor.valueParameters.size == element.arguments.size) return
         val description = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
-        val fix = FillClassFix(description, withoutDefaultValues)
+        val fix = FillClassFix(
+            description = description,
+            withoutDefaultValues = withoutDefaultValues,
+            withoutDefaultArguments = withoutDefaultArguments
+        )
         holder.registerProblem(element, description, fix)
     })
 
     override fun createOptionsPanel(): JComponent {
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
+        panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
         return panel
     }
 }
@@ -59,7 +65,8 @@ private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
 
 class FillClassFix(
     private val description: String,
-    private val withoutDefaultValues: Boolean
+    private val withoutDefaultValues: Boolean,
+    private val withoutDefaultArguments: Boolean
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -78,6 +85,7 @@ class FillClassFix(
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
+            if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
             val added = addArgument(createDefaultValueArgument(parameter, factory))
             val argumentExpression = added.getArgumentExpression()
             if (argumentExpression is KtQualifiedExpression) {
