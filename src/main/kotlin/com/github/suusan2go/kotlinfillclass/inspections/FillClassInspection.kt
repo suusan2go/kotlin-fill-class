@@ -1,17 +1,20 @@
-package com.github.suusan2go.kotlinfillclass.intentions
+package com.github.suusan2go.kotlinfillclass.inspections
 
-import com.intellij.openapi.editor.Editor
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
-import org.jetbrains.kotlin.idea.intentions.SelfTargetingIntention
+import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -21,26 +24,38 @@ import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
+import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 
-class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueArgumentList::class.java, "Fill class constructor") {
-    override fun isApplicableTo(element: KtValueArgumentList, caretOffset: Int): Boolean {
-        val descriptor = element.descriptor() ?: return false
-        if (descriptor.valueParameters.size == element.arguments.size) return false
-        text = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
-        return true
-    }
+class FillClassInspection : AbstractKotlinInspection() {
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean
+    ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
+        val descriptor = element.descriptor() ?: return
+        if (descriptor.valueParameters.size == element.arguments.size) return
+        val description = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
+        val fix = FillClassFix(description)
+        holder.registerProblem(element, description, fix)
+    })
+}
 
-    override fun applyTo(element: KtValueArgumentList, editor: Editor?) {
+private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
+    val calleeExpression = getStrictParentOfType<KtCallElement>()?.calleeExpression ?: return null
+    val descriptor = calleeExpression.resolveToCall()?.resultingDescriptor
+    if (descriptor is JavaCallableMemberDescriptor) return null
+    return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
+}
+
+class FillClassFix(private val description: String) : LocalQuickFix {
+    override fun getName() = description
+
+    override fun getFamilyName() = name
+
+    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        val element = descriptor.psiElement as? KtValueArgumentList ?: return
         val parameters = element.descriptor()?.valueParameters ?: return
         element.fillArguments(parameters)
-    }
-
-    private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
-        val calleeExpression = getStrictParentOfType<KtCallElement>()?.calleeExpression ?: return null
-        val descriptor = calleeExpression.resolveToCall()?.resultingDescriptor
-        if (descriptor is JavaCallableMemberDescriptor) return null
-        return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
     }
 
     private fun KtValueArgumentList.fillArguments(parameters: List<ValueParameterDescriptor>) {
@@ -58,7 +73,10 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
         }
     }
 
-    private fun createDefaultValueArgument(parameter: ValueParameterDescriptor, factory: KtPsiFactory): KtValueArgument {
+    private fun createDefaultValueArgument(
+        parameter: ValueParameterDescriptor,
+        factory: KtPsiFactory
+    ): KtValueArgument {
         val type = parameter.type
         val defaultValue = when {
             KotlinBuiltIns.isBoolean(type) -> "false"
@@ -87,7 +105,7 @@ class FillClassIntention : SelfTargetingIntention<KtValueArgumentList>(KtValueAr
 
         val fqName = descriptor?.importableFqName?.asString()
         val valueParameters =
-                descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
+            descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
         val argumentExpression = if (fqName != null && valueParameters != null) {
             (factory.createExpression("$fqName()")).also {
                 val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression

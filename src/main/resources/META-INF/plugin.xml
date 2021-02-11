@@ -21,10 +21,13 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <intentionAction>
-            <className>com.github.suusan2go.kotlinfillclass.intentions.FillClassIntention</className>
-            <category>Kotlin</category>
-        </intentionAction>
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillClassInspection"
+                         groupPath="Kotlin"
+                         groupName="Fill class"
+                         enabledByDefault="true"
+                         level="INFORMATION"
+                         language="kotlin"
+                         displayName="Fill class" />
     </extensions>
 
     <application-components>

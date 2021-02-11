@@ -1,9 +1,12 @@
-package com.github.suusan2go.kotlinfillclass.intentions
+package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.intellij.codeHighlighting.HighlightDisplayLevel
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.jetbrains.kotlin.idea.KotlinFileType
 
-class FillClassIntentionTest : BasePlatformTestCase() {
+class FillClassInspectionTest : BasePlatformTestCase() {
     fun `test fill class constructor`() {
         doAvailableTest("""
             class User(val name: String, val age: Int)
@@ -156,51 +159,56 @@ class FillClassIntentionTest : BasePlatformTestCase() {
         """)
     }
 
-    private val intention = FillClassIntention()
-
     private fun doAvailableTest(
         before: String,
         after: String,
-        intentionText: String = "Fill class constructor",
+        problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList()
     ) {
-        checkCaret(before)
-        dependencies.forEachIndexed { index, dependency ->
-            myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
-        }
-        javaDependencies.forEachIndexed { index, dependency ->
-            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
-        }
-        myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
-        myFixture.launchAction(intention)
-        check(intentionText == intention.text) {
-            "Intention text mismatch. [expected]$intentionText [actual]${intention.text}"
-        }
+        val highlightInfo = doHighlighting(before, problemDescription, dependencies, javaDependencies)
+        check(highlightInfo != null) { "Problems should be detected at caret" }
+        myFixture.launchAction(myFixture.findSingleIntention(problemDescription))
         myFixture.checkResult(after.trimIndent())
     }
 
     private fun doUnavailableTest(
         before: String,
+        problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList()
     ) {
-        checkCaret(before)
+        val highlightInfo = doHighlighting(before, problemDescription, dependencies, javaDependencies)
+        check(highlightInfo == null) { "No problems should be detected at caret" }
+    }
+
+    private fun doHighlighting(
+        code: String,
+        problemDescription: String = "Fill class constructor",
+        dependencies: List<String> = emptyList(),
+        javaDependencies: List<String> = emptyList()
+    ): HighlightInfo? {
+        check("<caret>" in code) { "Please, add `<caret>` marker to\n$code" }
+
         dependencies.forEachIndexed { index, dependency ->
             myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
         }
         javaDependencies.forEachIndexed { index, dependency ->
             myFixture.configureByText("dependency$index.java", dependency.trimIndent())
         }
-        myFixture.configureByText(KotlinFileType.INSTANCE, before.trimIndent())
-        check(intention.familyName !in myFixture.availableIntentions.mapNotNull { it.familyName }) {
-            "Intention should not be available"
-        }
-    }
+        myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
-    private fun checkCaret(before: String) {
-        check("<caret>" in before) {
-            "Please, add `<caret>` marker to\n$before"
+        val inspection = FillClassInspection()
+        myFixture.enableInspections(inspection)
+
+        val inspectionProfileManager = ProjectInspectionProfileManager.getInstance(project)
+        val inspectionProfile = inspectionProfileManager.currentProfile
+        val state = inspectionProfile.getToolDefaultState(inspection.shortName, project)
+        state.level = HighlightDisplayLevel.WARNING
+
+        val caretOffset = myFixture.caretOffset
+        return myFixture.doHighlighting().singleOrNull {
+            it.description == problemDescription && caretOffset in it.startOffset..it.endOffset
         }
     }
 }
