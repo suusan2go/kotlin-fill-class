@@ -3,6 +3,7 @@ package com.github.suusan2go.kotlinfillclass.inspections
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
@@ -26,8 +27,11 @@ import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
+import javax.swing.JComponent
 
-class FillClassInspection : AbstractKotlinInspection() {
+class FillClassInspection(
+    @JvmField var withoutDefaultValues: Boolean = false
+) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean
@@ -35,9 +39,15 @@ class FillClassInspection : AbstractKotlinInspection() {
         val descriptor = element.descriptor() ?: return
         if (descriptor.valueParameters.size == element.arguments.size) return
         val description = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
-        val fix = FillClassFix(description)
+        val fix = FillClassFix(description, withoutDefaultValues)
         holder.registerProblem(element, description, fix)
     })
+
+    override fun createOptionsPanel(): JComponent {
+        val panel = MultipleCheckboxOptionsPanel(this)
+        panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
+        return panel
+    }
 }
 
 private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
@@ -47,7 +57,10 @@ private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
     return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
 }
 
-class FillClassFix(private val description: String) : LocalQuickFix {
+class FillClassFix(
+    private val description: String,
+    private val withoutDefaultValues: Boolean
+) : LocalQuickFix {
     override fun getName() = description
 
     override fun getFamilyName() = name
@@ -77,6 +90,10 @@ class FillClassFix(private val description: String) : LocalQuickFix {
         parameter: ValueParameterDescriptor,
         factory: KtPsiFactory
     ): KtValueArgument {
+        if (withoutDefaultValues) {
+            return factory.createArgument(null, parameter.name)
+        }
+
         val type = parameter.type
         val defaultValue = when {
             KotlinBuiltIns.isBoolean(type) -> "false"
