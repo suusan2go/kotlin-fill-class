@@ -35,7 +35,7 @@ repositories {
 }
 
 group 'com.github.suusan2go.kotlin-fill-class'
-version '1.0.5'
+version '1.0.6'
 
 sourceCompatibility = 11
 
