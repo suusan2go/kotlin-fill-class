@@ -10,7 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.6 - Adds support for IntelliJ 2021.1
+    1.0.7 - Introduce plugin configurations. Now you can change the plugin behavior, currently these two options are supported.
+    * Fill arguments without default values
+    * Do not fill default argument
     ]]>
     </change-notes>
 
