@@ -10,14 +10,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.7 - Introduce plugin configurations. Now you can change the plugin behavior, currently these two options are supported.
-    * Fill arguments without default values
-    * Do not fill default argument
+    1.0.8 - Add support for IntelliJ 2021.2
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="202" until-build="211.*"/>
+    <idea-version since-build="202" until-build="212.*"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>org.jetbrains.kotlin</depends>

@@ -21,7 +21,7 @@ sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
 intellij {
-    version '2021.1'
+    version '2021.2'
     plugins = ['Kotlin', 'java']
     pluginName 'kotlin-fill-class'
     publishPlugin {
@@ -35,7 +35,7 @@ repositories {
 }
 
 group 'com.github.suusan2go.kotlin-fill-class'
-version '1.0.7'
+version '1.0.8'
 
 sourceCompatibility = 11
 
