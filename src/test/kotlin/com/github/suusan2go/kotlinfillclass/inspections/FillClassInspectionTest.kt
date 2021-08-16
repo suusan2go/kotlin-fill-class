@@ -187,6 +187,31 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """, withoutDefaultArguments = true)
     }
 
+    fun `test fill lambda arguments`() {
+        val dependency = """
+            package foo
+
+            class A
+
+            class B(f1: () -> Unit, f2: (Int) -> String, f3: (Int, String?, A) -> String)
+        """.trimIndent()
+
+        doAvailableTest("""
+            import foo.B
+            
+            fun test() {
+                B(<caret>)
+            }
+        """, """
+            import foo.A
+            import foo.B
+            
+            fun test() {
+                B(f1 = {}, f2 = {}, f3 = { i: Int, s: String?, a: A -> })
+            }
+        """, withoutDefaultArguments = true, dependencies = listOf(dependency))
+    }
+
     private fun doAvailableTest(
         before: String,
         after: String,
