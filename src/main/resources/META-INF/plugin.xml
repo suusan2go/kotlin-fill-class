@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.8 - Add support for IntelliJ 2021.2
+    1.0.9 - Add support for filling default value to lambda arguments #53
     ]]>
     </change-notes>
 
