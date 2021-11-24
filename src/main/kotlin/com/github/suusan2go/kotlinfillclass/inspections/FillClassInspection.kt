@@ -6,6 +6,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
@@ -13,6 +14,8 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
+import org.jetbrains.kotlin.idea.core.CollectingNameValidator
+import org.jetbrains.kotlin.idea.core.KotlinNameSuggester
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
@@ -20,6 +23,7 @@ import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
@@ -27,6 +31,7 @@ import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
+import org.jetbrains.kotlin.types.KotlinType
 import javax.swing.JComponent
 
 class FillClassInspection(
@@ -88,7 +93,7 @@ class FillClassFix(
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
             val added = addArgument(createDefaultValueArgument(parameter, factory))
             val argumentExpression = added.getArgumentExpression()
-            if (argumentExpression is KtQualifiedExpression) {
+            if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
                 ShortenReferences.DEFAULT.process(argumentExpression)
             }
         }
@@ -103,21 +108,7 @@ class FillClassFix(
         }
 
         val type = parameter.type
-        val defaultValue = when {
-            KotlinBuiltIns.isBoolean(type) -> "false"
-            KotlinBuiltIns.isChar(type) -> "''"
-            KotlinBuiltIns.isDouble(type) -> "0.0"
-            KotlinBuiltIns.isFloat(type) -> "0.0f"
-            KotlinBuiltIns.isInt(type) || KotlinBuiltIns.isLong(type) || KotlinBuiltIns.isShort(type) -> "0"
-            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
-            KotlinBuiltIns.isNullableAny(type) -> "null"
-            KotlinBuiltIns.isString(type) -> "\"\""
-            KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
-            KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
-            KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
-            type.isMarkedNullable -> "null"
-            else -> null
-        }
+        val defaultValue = type.defaultValue()
         if (defaultValue != null) {
             return factory.createArgument(factory.createExpression(defaultValue), parameter.name)
         }
@@ -140,5 +131,39 @@ class FillClassFix(
             null
         }
         return factory.createArgument(argumentExpression, parameter.name)
+    }
+
+    private fun KotlinType.defaultValue(): String? = when {
+        KotlinBuiltIns.isBoolean(this) -> "false"
+        KotlinBuiltIns.isChar(this) -> "''"
+        KotlinBuiltIns.isDouble(this) -> "0.0"
+        KotlinBuiltIns.isFloat(this) -> "0.0f"
+        KotlinBuiltIns.isInt(this) || KotlinBuiltIns.isLong(this) || KotlinBuiltIns.isShort(this) -> "0"
+        KotlinBuiltIns.isCollectionOrNullableCollection(this) -> "arrayOf()"
+        KotlinBuiltIns.isNullableAny(this) -> "null"
+        KotlinBuiltIns.isString(this) -> "\"\""
+        KotlinBuiltIns.isListOrNullableList(this) -> "listOf()"
+        KotlinBuiltIns.isSetOrNullableSet(this) -> "setOf()"
+        KotlinBuiltIns.isMapOrNullableMap(this) -> "mapOf()"
+        this.isFunctionType -> lambdaDefaultValue()
+        this.isMarkedNullable -> "null"
+        else -> null
+    }
+
+    private fun KotlinType.lambdaDefaultValue(): String = buildString {
+        append("{")
+        if (arguments.size > 2) {
+            val validator = CollectingNameValidator()
+            val lambdaParameters = arguments.dropLast(1).joinToString(postfix = "->") {
+                val type = it.type
+                val name = KotlinNameSuggester.suggestNamesByType(type, validator, "param")[0]
+                validator.addName(name)
+                val typeText = type.constructor.declarationDescriptor?.importableFqName?.asString() ?: type.toString()
+                val nullable = if (type.isMarkedNullable) "?" else ""
+                "$name: $typeText$nullable"
+            }
+            append(lambdaParameters)
+        }
+        append("}")
     }
 }
