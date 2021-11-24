@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.9 - Add support for filling default value to lambda arguments #53
+    1.0.10 - Add support for older version of IDEA and Android Studio
     ]]>
     </change-notes>
 
