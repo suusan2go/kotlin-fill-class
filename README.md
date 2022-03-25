@@ -2,12 +2,15 @@
 [![jetBrains](https://img.shields.io/jetbrains/plugin/d/10942-kotlin-fill-class.svg)](https://plugins.jetbrains.com/plugin/10942-kotlin-fill-class)
 
 # kotlin-fill-class plugin
+<!-- Plugin description -->
 Intellij plugin that provide intention action for empty constructor or function to fill property with default value.
 Inspired by Go [fillstruct](https://github.com/davidrjenni/reftools/tree/master/cmd/fillstruct)
+<!-- Plugin description end -->
 
 ## Usage
 This plugin add intention action for invalid constructor or function expression.
 ![kotlin fill class demo](https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif)
+
 
 ### Configure settings
 You can configure the plugin settings by `Edit inspection profile setting`
