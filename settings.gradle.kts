@@ -8,4 +8,3 @@
  */
 
 rootProject.name = "kotlin-fill-class"
-

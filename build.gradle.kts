@@ -1,5 +1,4 @@
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
@@ -75,18 +74,21 @@ tasks {
                 subList(indexOf(start) + 1, indexOf(end))
             }.joinToString("\n")
                 .run { markdownToHTML(this) }
-                .plus("<a target=\"_blank\" href=\"https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif\">" +
+                .plus(
+                    "<a target=\"_blank\" href=\"https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif\">" +
                         "<img src=\"https://user-images.githubusercontent.com/8841470/59397528-e61a4380-8dc7-11e9-9684-d82d225316fe.gif\" alt=\"fill-class\" style=\"max-width:100%;\">" +
                         "</a></p>"
                 )
         )
 
         // Get the latest available change notes from the changelog file
-        changeNotes.set(provider {
-            changelog.run {
-                getOrNull(properties("pluginVersion")) ?: getLatest()
-            }.toHTML()
-        })
+        changeNotes.set(
+            provider {
+                changelog.run {
+                    getOrNull(properties("pluginVersion")) ?: getLatest()
+                }.toHTML()
+            }
+        )
     }
 
     // Configure UI tests plugin
@@ -104,5 +106,3 @@ tasks {
         channels.set(listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
     }
 }
-
-
