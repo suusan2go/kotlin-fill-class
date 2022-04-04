@@ -10,13 +10,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v1-dependencies-{{ checksum "build.gradle.kts" }}
           - v1-dependencies-
       - run: ./gradlew dependencies
       - save_cache:
           paths:
             - ~/.gradle
-          key: v1-dependencies-{{ checksum "build.gradle" }}
+          key: v1-dependencies-{{ checksum "build.gradle.kts" }}
   lint:
     docker:
       - image: circleci/openjdk:11-jdk
@@ -25,9 +25,9 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v1-dependencies-{{ checksum "build.gradle.kts" }}
           - v1-dependencies-
-      - run: ./gradlew ktlint
+      - run: ./gradlew ktlintCheck
   test:
     docker:
       - image: circleci/openjdk:11-jdk
@@ -36,7 +36,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v1-dependencies-{{ checksum "build.gradle.kts" }}
           - v1-dependencies-
       - run: ./gradlew test
 
