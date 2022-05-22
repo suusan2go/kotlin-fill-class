@@ -8,55 +8,67 @@ import org.jetbrains.kotlin.idea.KotlinFileType
 
 class FillClassInspectionTest : BasePlatformTestCase() {
     fun `test fill class constructor`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             class User(val name: String, val age: Int)
             fun test() {
                 User(<caret>)
             }
-        """, """
+        """,
+            """
             class User(val name: String, val age: Int)
             fun test() {
                 User(name = "", age = 0)
             }
-        """)
+        """
+        )
     }
 
     fun `test can't fill class constructor`() {
-        doUnavailableTest("""
+        doUnavailableTest(
+            """
             class User(val name: String, val age: Int)
             fun test() {
                 User("", 0<caret>)
             }
-        """)
+        """
+        )
     }
 
     fun `test fill function`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             class User(val name: String, val age: Int)
             fun foo(s: String, t: Int, u: User) {}
             fun test() {
                 foo(<caret>)
             }
-        """, """
+        """,
+            """
             class User(val name: String, val age: Int)
             fun foo(s: String, t: Int, u: User) {}
             fun test() {
                 foo(s = "", t = 0, u = User(name = "", age = 0))
             }
-        """, "Fill function")
+        """,
+            "Fill function"
+        )
     }
 
     fun `test can't fill function`() {
-        doUnavailableTest("""
+        doUnavailableTest(
+            """
             fun foo(s: String, t: Int) {}            
             fun test() {
                 foo("", 0<caret>)
             }
-        """)
+        """
+        )
     }
 
     fun `test fill for non primitive types`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             class A(a1: String, a2: Int)
             class B(b1: Int, b2: String, a: A)
             class C
@@ -64,7 +76,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             fun test() {
                 D(<caret>)
             }
-        """, """
+        """,
+            """
             class A(a1: String, a2: Int)
             class B(b1: Int, b2: String, a: A)
             class C
@@ -72,11 +85,13 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             fun test() {
                 D(a = A(a1 = "", a2 = 0), b = B(b1 = 0, b2 = "", a = A(a1 = "", a2 = 0)), c = C(), r =)
             }
-        """)
+        """
+        )
     }
 
     fun `test don't add default value for enum,abstract,sealed`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             enum class A(val a: String) {
                 Foo("foo"), Bar("bar"), Baz("baz");
             }
@@ -86,7 +101,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             fun test() {
                 Test(<caret>)
             }
-        """, """
+        """,
+            """
             enum class A(val a: String) {
                 Foo("foo"), Bar("bar"), Baz("baz");
             }
@@ -96,7 +112,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             fun test() {
                 Test(a =, b =, c =)
             }
-        """)
+        """
+        )
     }
 
     fun `test add import directives`() {
@@ -106,16 +123,20 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             class A
             class B(a: A)
         """
-        doAvailableTest("""
+        doAvailableTest(
+            """
             import com.example.B
             
             val b = B(<caret>)
-        """, """
+        """,
+            """
             import com.example.A
             import com.example.B
             
             val b = B(a = A())
-        """, dependencies = listOf(dependency))
+        """,
+            dependencies = listOf(dependency)
+        )
     }
 
     fun `test call java constructor`() {
@@ -125,11 +146,14 @@ class FillClassInspectionTest : BasePlatformTestCase() {
                 }
             }
         """
-        doUnavailableTest("""
+        doUnavailableTest(
+            """
             fun test() {
                 Java(<caret>)
             }
-        """, javaDependencies = listOf(javaDependency))
+        """,
+            javaDependencies = listOf(javaDependency)
+        )
     }
 
     fun `test call java method`() {
@@ -142,49 +166,63 @@ class FillClassInspectionTest : BasePlatformTestCase() {
                 }
             }
         """
-        doUnavailableTest("""
+        doUnavailableTest(
+            """
             fun test() {
                 Java("").foo(<caret>)
             }
-        """, javaDependencies = listOf(javaDependency))
+        """,
+            javaDependencies = listOf(javaDependency)
+        )
     }
 
     fun `test fill super type call entry`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             open class C(p1: Int, p2: Int)
             class D : C(<caret>)
-        """, """
+        """,
+            """
             open class C(p1: Int, p2: Int)
             class D : C(p1 = 0, p2 = 0)
-        """)
+        """
+        )
     }
 
     fun `test fill class constructor without default values`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             class User(val name: String, val age: Int)
             fun test() {
                 User(<caret>)
             }
-        """, """
+        """,
+            """
             class User(val name: String, val age: Int)
             fun test() {
                 User(name =, age =)
             }
-        """, withoutDefaultValues = true)
+        """,
+            withoutDefaultValues = true
+        )
     }
 
     fun `test do not fill default arguments`() {
-        doAvailableTest("""
+        doAvailableTest(
+            """
             class User(val name: String, val age: Int = 0)
             fun test() {
                 User(<caret>)
             }
-        """, """
+        """,
+            """
             class User(val name: String, val age: Int = 0)
             fun test() {
                 User(name = "")
             }
-        """, withoutDefaultArguments = true)
+        """,
+            withoutDefaultArguments = true
+        )
     }
 
     fun `test fill lambda arguments`() {
@@ -196,20 +234,60 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             class B(f1: () -> Unit, f2: (Int) -> String, f3: (Int, String?, A) -> String)
         """.trimIndent()
 
-        doAvailableTest("""
+        doAvailableTest(
+            """
             import foo.B
             
             fun test() {
                 B(<caret>)
             }
-        """, """
+        """,
+            """
             import foo.A
             import foo.B
             
             fun test() {
                 B(f1 = {}, f2 = {}, f3 = { i: Int, s: String?, a: A -> })
             }
-        """, withoutDefaultArguments = true, dependencies = listOf(dependency))
+        """,
+            withoutDefaultArguments = true, dependencies = listOf(dependency)
+        )
+    }
+
+    fun `test do not add trailing comma`() {
+        doAvailableTest(
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(<caret>)
+            }
+        """,
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(name = "", age = 0)
+            }
+        """,
+            withTrailingComma = false
+        )
+    }
+
+    fun `test add trailing comma`() {
+        doAvailableTest(
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(<caret>)
+            }
+        """,
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(name = "", age = 0,)
+            }
+        """,
+            withTrailingComma = true
+        )
     }
 
     private fun doAvailableTest(
@@ -219,10 +297,17 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
         withoutDefaultValues: Boolean = false,
-        withoutDefaultArguments: Boolean = false
+        withoutDefaultArguments: Boolean = false,
+        withTrailingComma: Boolean = false
     ) {
         val highlightInfo = doHighlighting(
-            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues, withoutDefaultArguments
+            before,
+            problemDescription,
+            dependencies,
+            javaDependencies,
+            withoutDefaultValues,
+            withoutDefaultArguments,
+            withTrailingComma
         )
         check(highlightInfo != null) { "Problems should be detected at caret" }
         myFixture.launchAction(myFixture.findSingleIntention(problemDescription))
@@ -235,10 +320,17 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
         withoutDefaultValues: Boolean = false,
-        withoutDefaultArguments: Boolean = false
+        withoutDefaultArguments: Boolean = false,
+        withTrailingComma: Boolean = false
     ) {
         val highlightInfo = doHighlighting(
-            before, problemDescription, dependencies, javaDependencies, withoutDefaultValues, withoutDefaultArguments
+            before,
+            problemDescription,
+            dependencies,
+            javaDependencies,
+            withoutDefaultValues,
+            withoutDefaultArguments,
+            withTrailingComma
         )
         check(highlightInfo == null) { "No problems should be detected at caret" }
     }
@@ -249,7 +341,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         dependencies: List<String>,
         javaDependencies: List<String>,
         withoutDefaultValues: Boolean,
-        withoutDefaultArguments: Boolean
+        withoutDefaultArguments: Boolean,
+        withTrailingComma: Boolean
     ): HighlightInfo? {
         check("<caret>" in code) { "Please, add `<caret>` marker to\n$code" }
 
@@ -263,7 +356,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
 
         val inspection = FillClassInspection(
             withoutDefaultValues = withoutDefaultValues,
-            withoutDefaultArguments = withoutDefaultArguments
+            withoutDefaultArguments = withoutDefaultArguments,
+            withTrailingComma = withTrailingComma
         )
         myFixture.enableInspections(inspection)
 

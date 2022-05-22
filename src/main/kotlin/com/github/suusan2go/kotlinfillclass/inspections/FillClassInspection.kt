@@ -5,6 +5,7 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
@@ -36,7 +37,8 @@ import javax.swing.JComponent
 
 class FillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
-    @JvmField var withoutDefaultArguments: Boolean = false
+    @JvmField var withoutDefaultArguments: Boolean = false,
+    @JvmField var withTrailingComma: Boolean = false
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -48,7 +50,8 @@ class FillClassInspection(
         val fix = FillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
-            withoutDefaultArguments = withoutDefaultArguments
+            withoutDefaultArguments = withoutDefaultArguments,
+            withTrailingComma = withTrailingComma
         )
         holder.registerProblem(element, description, fix)
     })
@@ -57,6 +60,7 @@ class FillClassInspection(
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
         panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
+        panel.addCheckbox("Append trailing comma", "withTrailingComma")
         return panel
     }
 }
@@ -71,7 +75,8 @@ private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
 class FillClassFix(
     private val description: String,
     private val withoutDefaultValues: Boolean,
-    private val withoutDefaultArguments: Boolean
+    private val withoutDefaultArguments: Boolean,
+    private val withTrailingComma: Boolean
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -95,6 +100,9 @@ class FillClassFix(
             val argumentExpression = added.getArgumentExpression()
             if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
                 ShortenReferences.DEFAULT.process(argumentExpression)
+            }
+            if (argumentExpression != null && withTrailingComma && index == parameters.lastIndex) {
+                argumentExpression.addCommaAfter(factory)
             }
         }
     }
@@ -165,5 +173,10 @@ class FillClassFix(
             append(lambdaParameters)
         }
         append("}")
+    }
+
+    private fun PsiElement.addCommaAfter(factory: KtPsiFactory) {
+        val comma = factory.createComma()
+        parent.addAfter(comma, this)
     }
 }
