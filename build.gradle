@@ -53,7 +53,11 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     testImplementation group: 'junit', name: 'junit', version: '4.13.1'
 
-    ktlint "com.github.shyiko:ktlint:0.31.0"
+    ktlint("com.pinterest:ktlint:0.45.2") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
+        }
+    }
 }
 
 compileKotlin {
@@ -65,19 +69,21 @@ compileTestKotlin {
 
 task ktlint(type: JavaExec, group: "verification") {
     description = "Check Kotlin code style."
-    main = "com.github.shyiko.ktlint.Main"
     classpath = configurations.ktlint
+    mainClass.set("com.pinterest.ktlint.Main")
     args "src/**/*.kt"
     // to generate report in checkstyle format prepend following args:
     // "--reporter=plain", "--reporter=checkstyle,output=${buildDir}/ktlint.xml"
-    // see https://github.com/shyiko/ktlint#usage for more
+    // to add a baseline to check against prepend following args:
+    // "--baseline=ktlint-baseline.xml"
+    // see https://github.com/pinterest/ktlint#usage for more
 }
 check.dependsOn ktlint
 
 task ktlintFormat(type: JavaExec, group: "formatting") {
     description = "Fix Kotlin code style deviations."
-    main = "com.github.shyiko.ktlint.Main"
     classpath = configurations.ktlint
+    mainClass.set("com.pinterest.ktlint.Main")
     args "-F", "src/**/*.kt"
 }
 
