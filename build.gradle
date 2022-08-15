@@ -34,11 +34,10 @@ intellij {
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 group 'com.github.suusan2go.kotlin-fill-class'
-version '1.0.12'
+version '1.0.13'
 
 sourceCompatibility = 11
 

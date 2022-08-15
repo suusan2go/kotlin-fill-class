@@ -10,7 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.12 - Add support for 221* / 2022.1 version of IDEA
+    1.0.13- Add trailing comma support
     ]]>
     </change-notes>
 
