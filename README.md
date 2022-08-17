@@ -21,7 +21,12 @@ Currently this plugins supports two options.
 Install from jetbrains plugins repository.
 https://plugins.jetbrains.com/plugin/10942-kotlin-fill-class
 
-## Thanks
-- [@t-kameyama](https://github.com/t-kameyama) Fill function call arguments [#17](https://github.com/suusan2go/kotlin-fill-class/pull/17)
-- [@shiraji](https://github.com/shiraji) Convert to intention & Support non-empty constructor [#6](https://github.com/suusan2go/kotlin-fill-class/pull/6)
-- [@Pluu](https://github.com/Pluu) [@naofumi-fujii](https://github.com/naofumi-fujii]) fix #2 Double type fill error [#3](https://github.com/suusan2go/kotlin-fill-class/pull/3)
+## Contributors
+Thank you to all our [contributors](https://github.com/suusan2go/kotlin-fill-class/graphs/contributors)!
+
+<a href="https://github.com/suusan2go/kotlin-fill-class/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=suusan2go/kotlin-fill-class" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
