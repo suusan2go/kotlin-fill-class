@@ -30,3 +30,6 @@ Thank you to all our [contributors](https://github.com/suusan2go/kotlin-fill-cla
 
 Made with [contrib.rocks](https://contrib.rocks).
 
+## Maintainers
+- [@suusan2go](https://github.com/suusan2go)
+- [@oboenikui](https://github.com/oboenikui)
