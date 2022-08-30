@@ -5,6 +5,7 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
@@ -20,6 +21,8 @@ import org.jetbrains.kotlin.idea.core.KotlinNameSuggester
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
+import org.jetbrains.kotlin.idea.inspections.findExistingEditor
+import org.jetbrains.kotlin.idea.intentions.ChopArgumentListIntention
 import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -38,7 +41,8 @@ import javax.swing.JComponent
 class FillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
     @JvmField var withoutDefaultArguments: Boolean = false,
-    @JvmField var withTrailingComma: Boolean = false
+    @JvmField var withTrailingComma: Boolean = false,
+    @JvmField var putArgumentsOnSeparateLines: Boolean = false,
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -51,7 +55,8 @@ class FillClassInspection(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
             withoutDefaultArguments = withoutDefaultArguments,
-            withTrailingComma = withTrailingComma
+            withTrailingComma = withTrailingComma,
+            putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
         )
         holder.registerProblem(element, description, fix)
     })
@@ -61,6 +66,7 @@ class FillClassInspection(
         panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
         panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
         panel.addCheckbox("Append trailing comma", "withTrailingComma")
+        panel.addCheckbox("Put arguments on separate lines", "putArgumentsOnSeparateLines")
         return panel
     }
 }
@@ -76,7 +82,8 @@ class FillClassFix(
     private val description: String,
     private val withoutDefaultValues: Boolean,
     private val withoutDefaultArguments: Boolean,
-    private val withTrailingComma: Boolean
+    private val withTrailingComma: Boolean,
+    private val putArgumentsOnSeparateLines: Boolean,
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -103,6 +110,13 @@ class FillClassFix(
             }
             if (argumentExpression != null && withTrailingComma && index == parameters.lastIndex) {
                 argumentExpression.addCommaAfter(factory)
+            }
+        }
+        if (putArgumentsOnSeparateLines) {
+            val editor = findExistingEditor()
+            if (editor != null) {
+                PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+                ChopArgumentListIntention().applyTo(this, editor)
             }
         }
     }
