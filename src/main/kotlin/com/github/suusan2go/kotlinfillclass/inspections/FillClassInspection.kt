@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.inspections.findExistingEditor
 import org.jetbrains.kotlin.idea.intentions.ChopArgumentListIntention
 import org.jetbrains.kotlin.idea.intentions.callExpression
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -32,6 +33,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
@@ -99,6 +101,7 @@ class FillClassFix(
         val arguments = this.arguments
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
         val factory = KtPsiFactory(this)
+        val needsTrailingComma = withTrailingComma && !hasTrailingComma()
         parameters.forEachIndexed { index, parameter ->
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
@@ -108,8 +111,8 @@ class FillClassFix(
             if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
                 ShortenReferences.DEFAULT.process(argumentExpression)
             }
-            if (argumentExpression != null && withTrailingComma && index == parameters.lastIndex) {
-                argumentExpression.addCommaAfter(factory)
+            if (needsTrailingComma && index == parameters.lastIndex) {
+                argumentExpression?.addCommaAfter(factory)
             }
         }
         if (putArgumentsOnSeparateLines) {
@@ -193,4 +196,7 @@ class FillClassFix(
         val comma = factory.createComma()
         parent.addAfter(comma, this)
     }
+
+    private fun KtValueArgumentList.hasTrailingComma() =
+        rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
 }

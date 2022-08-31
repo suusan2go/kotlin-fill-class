@@ -290,6 +290,31 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test do not add trailing comma if trailing comma already exists`() {
+        doAvailableTest(
+            """
+             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+             fun test() {
+                 foo(
+                     a = 0,
+                     b = 0,<caret>
+                 )
+             }
+         """,
+            """
+             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+             fun test() {
+                 foo(
+                     a = 0,
+                     b = 0, c = 0, d = 0,
+                 )
+             }
+         """,
+            problemDescription = "Fill function",
+            withTrailingComma = true
+        )
+    }
+
     fun `test do not put arguments on separate lines`() {
         doAvailableTest(
             """
