@@ -290,6 +290,69 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test do not put arguments on separate lines`() {
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(<caret>)
+            }
+        """,
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(a = 0, b = 0, c = 0, d = 0)
+            }
+        """,
+            problemDescription = "Fill function",
+            putArgumentsOnSeparateLines = false
+        )
+    }
+
+    fun `test put arguments on separate lines`() {
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(<caret>)
+            }
+        """,
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(a = 0,
+                        b = 0,
+                        c = 0,
+                        d = 0)
+            }
+        """,
+            problemDescription = "Fill function",
+            putArgumentsOnSeparateLines = true
+        )
+    }
+
+    fun `test put arguments on separate lines with existing arguments`() {
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(a = 1, b = 2<caret>)
+            }
+        """,
+            """
+            fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+            fun test() {
+                foo(a = 1,
+                        b = 2,
+                        c = 0,
+                        d = 0)
+            }
+        """,
+            problemDescription = "Fill function",
+            putArgumentsOnSeparateLines = true
+        )
+    }
+
     private fun doAvailableTest(
         before: String,
         after: String,
@@ -298,7 +361,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         javaDependencies: List<String> = emptyList(),
         withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
-        withTrailingComma: Boolean = false
+        withTrailingComma: Boolean = false,
+        putArgumentsOnSeparateLines: Boolean = false,
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -307,7 +371,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             javaDependencies,
             withoutDefaultValues,
             withoutDefaultArguments,
-            withTrailingComma
+            withTrailingComma,
+            putArgumentsOnSeparateLines,
         )
         check(highlightInfo != null) { "Problems should be detected at caret" }
         myFixture.launchAction(myFixture.findSingleIntention(problemDescription))
@@ -321,7 +386,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         javaDependencies: List<String> = emptyList(),
         withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
-        withTrailingComma: Boolean = false
+        withTrailingComma: Boolean = false,
+        putArgumentsOnSeparateLines: Boolean = false,
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -330,7 +396,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             javaDependencies,
             withoutDefaultValues,
             withoutDefaultArguments,
-            withTrailingComma
+            withTrailingComma,
+            putArgumentsOnSeparateLines,
         )
         check(highlightInfo == null) { "No problems should be detected at caret" }
     }
@@ -342,7 +409,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         javaDependencies: List<String>,
         withoutDefaultValues: Boolean,
         withoutDefaultArguments: Boolean,
-        withTrailingComma: Boolean
+        withTrailingComma: Boolean,
+        putArgumentsOnSeparateLines: Boolean,
     ): HighlightInfo? {
         check("<caret>" in code) { "Please, add `<caret>` marker to\n$code" }
 
@@ -357,7 +425,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         val inspection = FillClassInspection(
             withoutDefaultValues = withoutDefaultValues,
             withoutDefaultArguments = withoutDefaultArguments,
-            withTrailingComma = withTrailingComma
+            withTrailingComma = withTrailingComma,
+            putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
         )
         myFixture.enableInspections(inspection)
 
