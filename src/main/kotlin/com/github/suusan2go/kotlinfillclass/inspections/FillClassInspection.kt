@@ -1,10 +1,13 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
@@ -24,6 +27,7 @@ import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.inspections.findExistingEditor
 import org.jetbrains.kotlin.idea.intentions.ChopArgumentListIntention
 import org.jetbrains.kotlin.idea.intentions.callExpression
+import org.jetbrains.kotlin.idea.util.textRangeIn
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -45,6 +49,7 @@ class FillClassInspection(
     @JvmField var withoutDefaultArguments: Boolean = false,
     @JvmField var withTrailingComma: Boolean = false,
     @JvmField var putArgumentsOnSeparateLines: Boolean = false,
+    @JvmField var movePointerToEveryArgument: Boolean = false,
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -59,6 +64,7 @@ class FillClassInspection(
             withoutDefaultArguments = withoutDefaultArguments,
             withTrailingComma = withTrailingComma,
             putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+            movePointerToEveryArgument = movePointerToEveryArgument,
         )
         holder.registerProblem(element, description, fix)
     })
@@ -69,6 +75,7 @@ class FillClassInspection(
         panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
         panel.addCheckbox("Append trailing comma", "withTrailingComma")
         panel.addCheckbox("Put arguments on separate lines", "putArgumentsOnSeparateLines")
+        panel.addCheckbox("Move pointer to every argument", "movePointerToEveryArgument")
         return panel
     }
 }
@@ -86,6 +93,7 @@ class FillClassFix(
     private val withoutDefaultArguments: Boolean,
     private val withTrailingComma: Boolean,
     private val putArgumentsOnSeparateLines: Boolean,
+    private val movePointerToEveryArgument: Boolean,
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -99,6 +107,7 @@ class FillClassFix(
 
     private fun KtValueArgumentList.fillArguments(parameters: List<ValueParameterDescriptor>) {
         val arguments = this.arguments
+        val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
         val factory = KtPsiFactory(this)
         val needsTrailingComma = withTrailingComma && !hasTrailingComma()
@@ -106,6 +115,7 @@ class FillClassFix(
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
+
             val added = addArgument(createDefaultValueArgument(parameter, factory))
             val argumentExpression = added.getArgumentExpression()
             if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
@@ -115,11 +125,16 @@ class FillClassFix(
                 argumentExpression?.addCommaAfter(factory)
             }
         }
-        if (putArgumentsOnSeparateLines) {
-            val editor = findExistingEditor()
-            if (editor != null) {
+        val editor = findExistingEditor()
+        if (editor != null) {
+            if (putArgumentsOnSeparateLines || movePointerToEveryArgument) {
                 PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+            }
+            if (putArgumentsOnSeparateLines) {
                 ChopArgumentListIntention().applyTo(this, editor)
+            }
+            if (movePointerToEveryArgument) {
+                startToReplaceArguments(argumentSize, editor)
             }
         }
     }
@@ -199,4 +214,18 @@ class FillClassFix(
 
     private fun KtValueArgumentList.hasTrailingComma() =
         rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
+
+    private fun KtValueArgumentList.startToReplaceArguments(startIndex: Int, editor: Editor) {
+        val templateBuilder = TemplateBuilderImpl(this)
+        arguments.drop(startIndex).forEach { argument ->
+            val argumentExpression = argument.getArgumentExpression()
+            if (argumentExpression != null) {
+                templateBuilder.replaceElement(argumentExpression, argumentExpression.text)
+            } else {
+                val endOffset = argument.textRangeIn(this).endOffset
+                templateBuilder.replaceRange(TextRange(endOffset, endOffset), "")
+            }
+        }
+        templateBuilder.run(editor, true)
+    }
 }
