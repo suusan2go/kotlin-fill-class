@@ -10,7 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.14- Add support for IDEA version 2022.2
+    1.0.15
+      - Do not add unnecessary trailing comma
+      - Add "Put arguments on separate lines" setting
     ]]>
     </change-notes>
 
