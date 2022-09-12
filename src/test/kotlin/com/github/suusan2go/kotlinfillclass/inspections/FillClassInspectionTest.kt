@@ -378,6 +378,70 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test move pointer to every argument`() {
+        doAvailableTest(
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(<caret>)
+        """,
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(x = 0<caret>, y = 0, z = 0)
+        """,
+            problemDescription = "Fill function",
+            movePointerToEveryArgument = true
+        )
+    }
+
+    fun `test move pointer to every argument with existing arguments`() {
+        doAvailableTest(
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(x = 1<caret>)
+        """,
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(x = 1, y = 0<caret>, z = 0)
+        """,
+            problemDescription = "Fill function",
+            movePointerToEveryArgument = true
+        )
+    }
+
+    fun `test move pointer to every argument with putArgumentsOnSeparateLines`() {
+        doAvailableTest(
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(<caret>)
+        """,
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(x = 0<caret>,
+                    y = 0,
+                    z = 0)
+        """,
+            problemDescription = "Fill function",
+            movePointerToEveryArgument = true,
+            putArgumentsOnSeparateLines = true
+        )
+    }
+
+    fun `test move pointer to every argument with withoutDefaultValues`() {
+        doAvailableTest(
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(<caret>)
+        """,
+            """
+            fun foo(x: Int, y: Int, z: Int) = x + y + z
+            val bar = foo(x =<caret>, y =, z =)
+        """,
+            problemDescription = "Fill function",
+            movePointerToEveryArgument = true,
+            withoutDefaultValues = true
+        )
+    }
+
     private fun doAvailableTest(
         before: String,
         after: String,
@@ -388,6 +452,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
+        movePointerToEveryArgument: Boolean = false,
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -398,6 +463,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             withoutDefaultArguments,
             withTrailingComma,
             putArgumentsOnSeparateLines,
+            movePointerToEveryArgument,
         )
         check(highlightInfo != null) { "Problems should be detected at caret" }
         myFixture.launchAction(myFixture.findSingleIntention(problemDescription))
@@ -413,6 +479,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
+        movePointerToEveryArgument: Boolean = false
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -423,6 +490,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             withoutDefaultArguments,
             withTrailingComma,
             putArgumentsOnSeparateLines,
+            movePointerToEveryArgument,
         )
         check(highlightInfo == null) { "No problems should be detected at caret" }
     }
@@ -436,6 +504,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         withoutDefaultArguments: Boolean,
         withTrailingComma: Boolean,
         putArgumentsOnSeparateLines: Boolean,
+        movePointerToEveryArgument: Boolean,
     ): HighlightInfo? {
         check("<caret>" in code) { "Please, add `<caret>` marker to\n$code" }
 
@@ -452,6 +521,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             withoutDefaultArguments = withoutDefaultArguments,
             withTrailingComma = withTrailingComma,
             putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+            movePointerToEveryArgument = movePointerToEveryArgument,
         )
         myFixture.enableInspections(inspection)
 
