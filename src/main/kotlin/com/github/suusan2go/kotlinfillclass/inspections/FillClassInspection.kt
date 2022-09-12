@@ -49,7 +49,7 @@ class FillClassInspection(
     @JvmField var withoutDefaultArguments: Boolean = false,
     @JvmField var withTrailingComma: Boolean = false,
     @JvmField var putArgumentsOnSeparateLines: Boolean = false,
-    @JvmField var movePointerToEveryArgument: Boolean = false,
+    @JvmField var movePointerToEveryArgument: Boolean = true,
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
