@@ -10,9 +10,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.15
-      - Do not add unnecessary trailing comma
-      - Add "Put arguments on separate lines" setting
+    1.0.16 Turn "Move pointer to every argument" on by default
     ]]>
     </change-notes>
 
