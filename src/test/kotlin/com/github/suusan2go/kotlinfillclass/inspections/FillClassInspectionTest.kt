@@ -189,6 +189,52 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test extension function`() {
+        doAvailableTest(
+            """
+            class Foo
+            fun Foo.foo(x: Int, y: Int) {}
+            fun test() {
+                Foo().foo(<caret>)
+            }
+        """,
+            """
+            class Foo
+            fun Foo.foo(x: Int, y: Int) {}
+            fun test() {
+                Foo().foo(x = 0, y = 0)
+            }
+        """,
+            "Fill function"
+        )
+    }
+
+    fun `test imported extension function`() {
+        doAvailableTest(
+            """
+            import Bar.foo
+            class Foo
+            object Bar {
+                fun Foo.foo(x: Int, y: Int) {}
+            }
+            fun test() {
+                Foo().foo(<caret>)
+            }
+        """,
+            """
+            import Bar.foo
+            class Foo
+            object Bar {
+                fun Foo.foo(x: Int, y: Int) {}
+            }
+            fun test() {
+                Foo().foo(x = 0, y = 0)
+            }
+        """,
+            "Fill function"
+        )
+    }
+
     fun `test fill class constructor without default values`() {
         doAvailableTest(
             """
