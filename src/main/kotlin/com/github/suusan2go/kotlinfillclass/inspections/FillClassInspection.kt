@@ -12,11 +12,10 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
-import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
 import org.jetbrains.kotlin.idea.core.CollectingNameValidator
@@ -80,11 +79,11 @@ class FillClassInspection(
     }
 }
 
-private fun KtValueArgumentList.descriptor(): CallableDescriptor? {
+private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {
     val calleeExpression = getStrictParentOfType<KtCallElement>()?.calleeExpression ?: return null
-    val descriptor = calleeExpression.resolveToCall()?.resultingDescriptor
+    val descriptor = calleeExpression.resolveToCall()?.resultingDescriptor as? FunctionDescriptor ?: return null
     if (descriptor is JavaCallableMemberDescriptor) return null
-    return descriptor.takeIf { it is ClassConstructorDescriptor || it is SimpleFunctionDescriptor }
+    return descriptor
 }
 
 class FillClassFix(
