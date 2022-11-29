@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlinVersion = '1.6.20'
+    ext.kotlinVersion = '1.7.20'
     repositories {
         mavenCentral()
     }
@@ -10,8 +10,8 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.5.3'
-    id 'org.jetbrains.kotlin.jvm' version '1.6.20'
+    id 'org.jetbrains.intellij' version '1.10.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.20'
 }
 
 apply plugin: 'org.jetbrains.intellij'
@@ -24,6 +24,7 @@ intellij {
     version = '2022.2'
     plugins = ['Kotlin', 'java']
     pluginName = 'kotlin-fill-class'
+    updateSinceUntilBuild = false
     publishPlugin {
         token = System.getenv('TOKEN')
     }
