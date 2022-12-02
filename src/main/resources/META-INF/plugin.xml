@@ -10,7 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    1.0.16 Turn "Move pointer to every argument" on by default
+      1.0.17
+      add support 2022.3 and future versions
+      Fix false negative for imported extension function calls
     ]]>
     </change-notes>
 
