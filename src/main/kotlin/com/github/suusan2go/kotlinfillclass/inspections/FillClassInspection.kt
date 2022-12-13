@@ -10,13 +10,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.thedeanda.lorem.LoremIpsum
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
-import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
-import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.descriptors.FunctionDescriptor
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
 import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.idea.core.KotlinNameSuggester
@@ -29,16 +26,9 @@ import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.idea.util.textRangeIn
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
-import org.jetbrains.kotlin.psi.KtCallElement
-import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtLambdaExpression
-import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.psi.KtQualifiedExpression
-import org.jetbrains.kotlin.psi.KtValueArgument
-import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
-import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import javax.swing.JComponent
@@ -146,13 +136,12 @@ class FillClassFix(
             return factory.createArgument(null, parameter.name)
         }
 
-        val type = parameter.type
-        val defaultValue = type.defaultValue()
-        if (defaultValue != null) {
-            return factory.createArgument(factory.createExpression(defaultValue), parameter.name)
+        val value = parameter.fillValue()
+        if (value != null) {
+            return factory.createArgument(factory.createExpression(value), parameter.name)
         }
 
-        val descriptor = type.constructor.declarationDescriptor as? LazyClassDescriptor
+        val descriptor = parameter.type.constructor.declarationDescriptor as? LazyClassDescriptor
         val modality = descriptor?.modality
         if (descriptor?.kind == ClassKind.ENUM_CLASS || modality == Modality.ABSTRACT || modality == Modality.SEALED) {
             return factory.createArgument(null, parameter.name)
@@ -172,21 +161,27 @@ class FillClassFix(
         return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    private fun KotlinType.defaultValue(): String? = when {
-        KotlinBuiltIns.isBoolean(this) -> "false"
-        KotlinBuiltIns.isChar(this) -> "''"
-        KotlinBuiltIns.isDouble(this) -> "0.0"
-        KotlinBuiltIns.isFloat(this) -> "0.0f"
-        KotlinBuiltIns.isInt(this) || KotlinBuiltIns.isLong(this) || KotlinBuiltIns.isShort(this) -> "0"
-        KotlinBuiltIns.isCollectionOrNullableCollection(this) -> "arrayOf()"
-        KotlinBuiltIns.isNullableAny(this) -> "null"
-        KotlinBuiltIns.isString(this) -> "\"\""
-        KotlinBuiltIns.isListOrNullableList(this) -> "listOf()"
-        KotlinBuiltIns.isSetOrNullableSet(this) -> "setOf()"
-        KotlinBuiltIns.isMapOrNullableMap(this) -> "mapOf()"
-        this.isFunctionType -> lambdaDefaultValue()
-        this.isMarkedNullable -> "null"
-        else -> null
+    private fun ValueParameterDescriptor.fillValue(): String? {
+        val type = this.type
+        val paramName = this.name.asString()
+        return when {
+            KotlinBuiltIns.isBoolean(type) -> "false"
+            KotlinBuiltIns.isChar(type) -> "'${('A'..'Z').random()}'"
+            KotlinBuiltIns.isDouble(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
+            KotlinBuiltIns.isFloat(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
+            KotlinBuiltIns.isInt(type) ||
+                    KotlinBuiltIns.isLong(type) ||
+                    KotlinBuiltIns.isShort(type) -> "${ValueGenerator.randomNumFor(paramName)}"
+            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
+            KotlinBuiltIns.isNullableAny(type) -> "null"
+            KotlinBuiltIns.isString(type) -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+            KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
+            KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
+            KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
+            type.isFunctionType -> type.lambdaDefaultValue()
+            type.isMarkedNullable -> "null"
+            else -> null
+        }
     }
 
     private fun KotlinType.lambdaDefaultValue(): String = buildString {

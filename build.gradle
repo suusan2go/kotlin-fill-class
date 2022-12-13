@@ -10,7 +10,7 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.10.0'
+    id 'org.jetbrains.intellij' version '1.10.1'
     id 'org.jetbrains.kotlin.jvm' version '1.7.20'
 }
 
@@ -53,6 +53,9 @@ configurations {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+
+    // Lorem : An extremely useful Lorem Ipsum generator for Java!
+    implementation 'com.thedeanda:lorem:2.1'
 
     ktlint("com.pinterest:ktlint:0.45.2") {
         attributes {
