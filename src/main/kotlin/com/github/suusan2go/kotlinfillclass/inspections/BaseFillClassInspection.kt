@@ -12,8 +12,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
-import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
-import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
 import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.idea.core.KotlinNameSuggester
@@ -46,7 +45,7 @@ abstract class BaseFillClassInspection(
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
         val descriptor = element.descriptor() ?: return
         if (descriptor.valueParameters.size == element.arguments.size) return
-        val description = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
+        val description = getPromptTitle()
         val fix = FillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
@@ -54,6 +53,7 @@ abstract class BaseFillClassInspection(
             withTrailingComma = withTrailingComma,
             putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
             movePointerToEveryArgument = movePointerToEveryArgument,
+            shouldGenerateDummyValues = shouldGenerateDummyValues()
         )
         holder.registerProblem(element, description, fix)
     })
@@ -67,6 +67,9 @@ abstract class BaseFillClassInspection(
         panel.addCheckbox("Move pointer to every argument", "movePointerToEveryArgument")
         return panel
     }
+
+    abstract fun shouldGenerateDummyValues() : Boolean
+    abstract fun getPromptTitle() : String
 }
 
 private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {
@@ -83,6 +86,7 @@ class FillClassFix(
     private val withTrailingComma: Boolean,
     private val putArgumentsOnSeparateLines: Boolean,
     private val movePointerToEveryArgument: Boolean,
+    private val shouldGenerateDummyValues : Boolean,
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -166,15 +170,35 @@ class FillClassFix(
         val paramName = this.name.asString()
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
-            KotlinBuiltIns.isChar(type) -> "'${('A'..'Z').random()}'"
-            KotlinBuiltIns.isDouble(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
-            KotlinBuiltIns.isFloat(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
+            KotlinBuiltIns.isChar(type) -> if(shouldGenerateDummyValues){
+               "'${ValueGenerator.getRandomChar()}'"
+            }else{
+                "''"
+            }
+            KotlinBuiltIns.isDouble(type) -> if(shouldGenerateDummyValues){
+                "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
+            }else{
+                "0.0"
+            }
+            KotlinBuiltIns.isFloat(type) -> if(shouldGenerateDummyValues){
+                "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
+            }else{
+                "0.0f"
+            }
             KotlinBuiltIns.isInt(type) ||
                 KotlinBuiltIns.isLong(type) ||
-                KotlinBuiltIns.isShort(type) -> "${ValueGenerator.randomNumFor(paramName)}"
+                KotlinBuiltIns.isShort(type) -> if(shouldGenerateDummyValues){
+                "${ValueGenerator.randomNumFor(paramName)}"
+            }else{
+                "0"
+            }
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
-            KotlinBuiltIns.isString(type) -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+            KotlinBuiltIns.isString(type) -> if(shouldGenerateDummyValues){
+                "\"${ValueGenerator.randomStringFor(paramName)}\""
+            }else{
+                "\"\""
+            }
             KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"

@@ -13,4 +13,11 @@ class FillDummyValuesInspection(
     putArgumentsOnSeparateLines,
     movePointerToEveryArgument
 ) {
+    override fun shouldGenerateDummyValues(): Boolean {
+        return true
+    }
+
+    override fun getPromptTitle(): String {
+        return "Fill with dummy values"
+    }
 }
