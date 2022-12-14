@@ -18,6 +18,6 @@ class FillEmptyValuesInspection(
     }
 
     override fun getPromptTitle(): String {
-        return "Fill with values"
+        return "Fill with empty values"
     }
 }
