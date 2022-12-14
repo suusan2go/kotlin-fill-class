@@ -68,8 +68,8 @@ abstract class BaseFillClassInspection(
         return panel
     }
 
-    abstract fun shouldGenerateDummyValues() : Boolean
-    abstract fun getPromptTitle() : String
+    abstract fun shouldGenerateDummyValues(): Boolean
+    abstract fun getPromptTitle(): String
 }
 
 private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {
@@ -86,7 +86,7 @@ class FillClassFix(
     private val withTrailingComma: Boolean,
     private val putArgumentsOnSeparateLines: Boolean,
     private val movePointerToEveryArgument: Boolean,
-    private val shouldGenerateDummyValues : Boolean,
+    private val shouldGenerateDummyValues: Boolean,
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -170,35 +170,40 @@ class FillClassFix(
         val paramName = this.name.asString()
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
-            KotlinBuiltIns.isChar(type) -> if(shouldGenerateDummyValues){
-               "'${ValueGenerator.getRandomChar()}'"
-            }else{
+            KotlinBuiltIns.isChar(type) -> if (shouldGenerateDummyValues) {
+                "'${ValueGenerator.getRandomChar()}'"
+            } else {
                 "''"
             }
-            KotlinBuiltIns.isDouble(type) -> if(shouldGenerateDummyValues){
+
+            KotlinBuiltIns.isDouble(type) -> if (shouldGenerateDummyValues) {
                 "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
-            }else{
+            } else {
                 "0.0"
             }
-            KotlinBuiltIns.isFloat(type) -> if(shouldGenerateDummyValues){
+
+            KotlinBuiltIns.isFloat(type) -> if (shouldGenerateDummyValues) {
                 "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
-            }else{
+            } else {
                 "0.0f"
             }
+
             KotlinBuiltIns.isInt(type) ||
-                KotlinBuiltIns.isLong(type) ||
-                KotlinBuiltIns.isShort(type) -> if(shouldGenerateDummyValues){
+                    KotlinBuiltIns.isLong(type) ||
+                    KotlinBuiltIns.isShort(type) -> if (shouldGenerateDummyValues) {
                 "${ValueGenerator.randomNumFor(paramName)}"
-            }else{
+            } else {
                 "0"
             }
+
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
-            KotlinBuiltIns.isString(type) -> if(shouldGenerateDummyValues){
+            KotlinBuiltIns.isString(type) -> if (shouldGenerateDummyValues) {
                 "\"${ValueGenerator.randomStringFor(paramName)}\""
-            }else{
+            } else {
                 "\"\""
             }
+
             KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
