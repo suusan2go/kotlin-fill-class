@@ -23,7 +23,7 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillClassInspection"
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillEmptyValuesInspection"
                          groupPath="Kotlin"
                          groupName="Fill class"
                          enabledByDefault="true"

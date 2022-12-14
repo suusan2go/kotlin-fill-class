@@ -562,7 +562,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         }
         myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
-        val inspection = FillClassInspection(
+        val inspection = FillEmptyValuesInspection(
             withoutDefaultValues = withoutDefaultValues,
             withoutDefaultArguments = withoutDefaultArguments,
             withTrailingComma = withTrailingComma,
