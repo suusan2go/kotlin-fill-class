@@ -20,6 +20,7 @@ class FillEmptyValuesInspection(
     override fun getConstructorPromptTitle(): String {
         return "Fill constructor"
     }
+
     override fun getFunctionPromptTitle(): String {
         return "Fill function"
     }
