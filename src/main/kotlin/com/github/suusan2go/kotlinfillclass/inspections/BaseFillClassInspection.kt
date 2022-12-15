@@ -56,7 +56,7 @@ abstract class BaseFillClassInspection(
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
         val descriptor = element.descriptor() ?: return
         if (descriptor.valueParameters.size == element.arguments.size) return
-        val description = getPromptTitle()
+        val description = if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
         val fix = FillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
@@ -80,7 +80,8 @@ abstract class BaseFillClassInspection(
     }
 
     abstract fun shouldGenerateDummyValues(): Boolean
-    abstract fun getPromptTitle(): String
+    abstract fun getConstructorPromptTitle(): String
+    abstract fun getFunctionPromptTitle(): String
 }
 
 private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {

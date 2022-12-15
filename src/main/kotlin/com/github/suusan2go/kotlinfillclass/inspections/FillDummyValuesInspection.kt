@@ -17,7 +17,10 @@ class FillDummyValuesInspection(
         return true
     }
 
-    override fun getPromptTitle(): String {
-        return "Fill with dummy values"
+    override fun getConstructorPromptTitle(): String {
+        return "Fill constructor with dummy values"
+    }
+    override fun getFunctionPromptTitle(): String {
+        return "Fill function with dummy values"
     }
 }

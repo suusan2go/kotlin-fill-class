@@ -17,7 +17,10 @@ class FillEmptyValuesInspection(
         return false
     }
 
-    override fun getPromptTitle(): String {
-        return "Fill with empty values"
+    override fun getConstructorPromptTitle(): String {
+        return "Fill constructor"
+    }
+    override fun getFunctionPromptTitle(): String {
+        return "Fill function"
     }
 }
