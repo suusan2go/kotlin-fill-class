@@ -66,6 +66,36 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test can't fill function with lambda argument`() {
+        doUnavailableTest(
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1, "b"<caret>) {}
+            }
+        """,
+            "Fill function"
+        )
+    }
+
+    fun `test fill function with lambda argument`() {
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1<caret>) {}
+            }
+        """,
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1, b = "") {}
+            }
+        """,
+            "Fill function"
+        )
+    }
+
     fun `test fill for non primitive types`() {
         doAvailableTest(
             """
