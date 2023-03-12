@@ -12,6 +12,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
@@ -37,10 +38,12 @@ import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
-import org.jetbrains.kotlin.psi.psiUtil.getStrictParentOfType
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
+import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
+import org.jetbrains.kotlin.resolve.calls.util.getParameterForArgument
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 import javax.swing.JComponent
 
 abstract class BaseFillClassInspection(
@@ -54,8 +57,9 @@ abstract class BaseFillClassInspection(
         holder: ProblemsHolder,
         isOnTheFly: Boolean
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
-        val descriptor = element.descriptor() ?: return
-        if (descriptor.valueParameters.size == element.arguments.size) return
+        val callElement = element.parent as? KtCallElement ?: return
+        val (_, descriptor) = callElement.analyze() ?: return
+        if (descriptor.valueParameters.size == callElement.valueArguments.size) return
         val description = if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
         val fix = FillClassFix(
             description = description,
@@ -84,11 +88,11 @@ abstract class BaseFillClassInspection(
     abstract fun getFunctionPromptTitle(): String
 }
 
-private fun KtValueArgumentList.descriptor(): FunctionDescriptor? {
-    val calleeExpression = getStrictParentOfType<KtCallElement>()?.calleeExpression ?: return null
-    val descriptor = calleeExpression.resolveToCall()?.resultingDescriptor as? FunctionDescriptor ?: return null
+private fun KtCallElement.analyze(): Pair<ResolvedCall<out CallableDescriptor>, FunctionDescriptor>? {
+    val resolvedCall = calleeExpression?.resolveToCall() ?: return null
+    val descriptor = resolvedCall.resultingDescriptor as? FunctionDescriptor ?: return null
     if (descriptor is JavaCallableMemberDescriptor) return null
-    return descriptor
+    return resolvedCall to descriptor
 }
 
 class FillClassFix(
@@ -105,18 +109,26 @@ class FillClassFix(
     override fun getFamilyName() = name
 
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-        val element = descriptor.psiElement as? KtValueArgumentList ?: return
-        val parameters = element.descriptor()?.valueParameters ?: return
-        element.fillArguments(parameters)
+        val argumentList = descriptor.psiElement as? KtValueArgumentList ?: return
+        val (resolvedCall, functionDescriptor) = argumentList.parent.safeAs<KtCallElement>()?.analyze() ?: return
+        argumentList.fillArguments(functionDescriptor.valueParameters, resolvedCall)
     }
 
-    private fun KtValueArgumentList.fillArguments(parameters: List<ValueParameterDescriptor>) {
+    private fun KtValueArgumentList.fillArguments(
+        parameters: List<ValueParameterDescriptor>,
+        resolvedCall: ResolvedCall<out CallableDescriptor>? = null
+    ) {
         val arguments = this.arguments
         val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
+
+        val lambdaArgument = parent.safeAs<KtCallElement>()?.lambdaArguments?.singleOrNull()
+        val parameterForLambdaArgument = lambdaArgument?.let { resolvedCall?.getParameterForArgument(it) }
+
         val factory = KtPsiFactory(this)
         val needsTrailingComma = withTrailingComma && !hasTrailingComma()
         parameters.forEachIndexed { index, parameter ->
+            if (parameter == parameterForLambdaArgument) return@forEachIndexed
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
