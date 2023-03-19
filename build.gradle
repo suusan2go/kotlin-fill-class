@@ -51,13 +51,15 @@ configurations {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
 
     // Lorem : An extremely useful Lorem Ipsum generator for Java!
     implementation 'com.thedeanda:lorem:2.1'
 
-    ktlint("com.pinterest:ktlint:0.45.2") {
+    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'io.mockk:mockk:1.13.4'
+
+    ktlint('com.pinterest:ktlint:0.45.2') {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
         }

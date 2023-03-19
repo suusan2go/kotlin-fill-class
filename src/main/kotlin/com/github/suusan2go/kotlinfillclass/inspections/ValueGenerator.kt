@@ -25,7 +25,7 @@ object ValueGenerator {
             paramName.contains("state", ignoreCase = true) -> lorem.stateFull
             paramName.contains("zip", ignoreCase = true) -> lorem.zipCode
             paramName.contains("name", ignoreCase = true) -> lorem.name
-            else -> lorem.getWords(0)
+            else -> lorem.getWords(1)
         }
     }
 

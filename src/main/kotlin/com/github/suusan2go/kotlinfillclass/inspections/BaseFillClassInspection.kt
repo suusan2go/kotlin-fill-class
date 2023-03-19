@@ -4,7 +4,6 @@ import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -44,7 +43,6 @@ import org.jetbrains.kotlin.resolve.calls.util.getParameterForArgument
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
-import javax.swing.JComponent
 
 abstract class BaseFillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
@@ -60,32 +58,45 @@ abstract class BaseFillClassInspection(
         val callElement = element.parent as? KtCallElement ?: return
         val (_, descriptor) = callElement.analyze() ?: return
         if (descriptor.valueParameters.size == callElement.valueArguments.size) return
-        val description = if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
-        val fix = FillClassFix(
+        val description =
+            if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
+        val fix = createFillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
             withoutDefaultArguments = withoutDefaultArguments,
             withTrailingComma = withTrailingComma,
             putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
             movePointerToEveryArgument = movePointerToEveryArgument,
-            shouldGenerateDummyValues = shouldGenerateDummyValues()
         )
         holder.registerProblem(element, description, fix)
     })
 
-    override fun createOptionsPanel(): JComponent {
-        val panel = MultipleCheckboxOptionsPanel(this)
-        panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
-        panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
-        panel.addCheckbox("Append trailing comma", "withTrailingComma")
-        panel.addCheckbox("Put arguments on separate lines", "putArgumentsOnSeparateLines")
-        panel.addCheckbox("Move pointer to every argument", "movePointerToEveryArgument")
-        return panel
-    }
-
-    abstract fun shouldGenerateDummyValues(): Boolean
     abstract fun getConstructorPromptTitle(): String
     abstract fun getFunctionPromptTitle(): String
+
+    open fun createFillClassFix(
+        description: String,
+        withoutDefaultValues: Boolean,
+        withoutDefaultArguments: Boolean,
+        withTrailingComma: Boolean,
+        putArgumentsOnSeparateLines: Boolean,
+        movePointerToEveryArgument: Boolean,
+    ): FillClassFix = FillClassFix(
+        description = description,
+        withoutDefaultValues = withoutDefaultValues,
+        withoutDefaultArguments = withoutDefaultArguments,
+        withTrailingComma = withTrailingComma,
+        putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+        movePointerToEveryArgument = movePointerToEveryArgument
+    )
+
+    companion object {
+        const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill arguments without default values"
+        const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill default arguments"
+        const val LABEL_WITH_TRAILING_COMMA = "Append trailing comma"
+        const val LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES = "Put arguments on separate lines"
+        const val LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT = "Move pointer to every argument"
+    }
 }
 
 private fun KtCallElement.analyze(): Pair<ResolvedCall<out CallableDescriptor>, FunctionDescriptor>? {
@@ -95,14 +106,13 @@ private fun KtCallElement.analyze(): Pair<ResolvedCall<out CallableDescriptor>, 
     return resolvedCall to descriptor
 }
 
-class FillClassFix(
+open class FillClassFix(
     private val description: String,
     private val withoutDefaultValues: Boolean,
     private val withoutDefaultArguments: Boolean,
     private val withTrailingComma: Boolean,
     private val putArgumentsOnSeparateLines: Boolean,
     private val movePointerToEveryArgument: Boolean,
-    private val shouldGenerateDummyValues: Boolean,
 ) : LocalQuickFix {
     override fun getName() = description
 
@@ -164,7 +174,7 @@ class FillClassFix(
             return factory.createArgument(null, parameter.name)
         }
 
-        val value = parameter.fillValue()
+        val value = fillValue(parameter)
         if (value != null) {
             return factory.createArgument(factory.createExpression(value), parameter.name)
         }
@@ -189,45 +199,19 @@ class FillClassFix(
         return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    private fun ValueParameterDescriptor.fillValue(): String? {
-        val type = this.type
-        val paramName = this.name.asString()
+    protected open fun fillValue(descriptor: ValueParameterDescriptor): String? {
+        val type = descriptor.type
         return when {
             KotlinBuiltIns.isBoolean(type) -> "false"
-            KotlinBuiltIns.isChar(type) -> if (shouldGenerateDummyValues) {
-                "'${ValueGenerator.getRandomChar()}'"
-            } else {
-                "''"
-            }
-
-            KotlinBuiltIns.isDouble(type) -> if (shouldGenerateDummyValues) {
-                "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
-            } else {
-                "0.0"
-            }
-
-            KotlinBuiltIns.isFloat(type) -> if (shouldGenerateDummyValues) {
-                "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
-            } else {
-                "0.0f"
-            }
-
+            KotlinBuiltIns.isChar(type) -> "''"
+            KotlinBuiltIns.isDouble(type) -> "0.0"
+            KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) ||
-                KotlinBuiltIns.isLong(type) ||
-                KotlinBuiltIns.isShort(type) -> if (shouldGenerateDummyValues) {
-                "${ValueGenerator.randomNumFor(paramName)}"
-            } else {
-                "0"
-            }
-
+                    KotlinBuiltIns.isLong(type) ||
+                    KotlinBuiltIns.isShort(type) -> "0"
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
-            KotlinBuiltIns.isString(type) -> if (shouldGenerateDummyValues) {
-                "\"${ValueGenerator.randomStringFor(paramName)}\""
-            } else {
-                "\"\""
-            }
-
+            KotlinBuiltIns.isString(type) -> "\"\""
             KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
