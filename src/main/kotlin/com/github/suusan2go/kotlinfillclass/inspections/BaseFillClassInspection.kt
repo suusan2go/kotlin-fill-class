@@ -4,7 +4,6 @@ import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -44,9 +43,8 @@ import org.jetbrains.kotlin.resolve.calls.util.getParameterForArgument
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
-import javax.swing.JComponent
 
-class FillClassInspection(
+abstract class BaseFillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
     @JvmField var withoutDefaultArguments: Boolean = false,
     @JvmField var withTrailingComma: Boolean = false,
@@ -60,8 +58,9 @@ class FillClassInspection(
         val callElement = element.parent as? KtCallElement ?: return
         val (_, descriptor) = callElement.analyze() ?: return
         if (descriptor.valueParameters.size == callElement.valueArguments.size) return
-        val description = if (descriptor is ClassConstructorDescriptor) "Fill class constructor" else "Fill function"
-        val fix = FillClassFix(
+        val description =
+            if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
+        val fix = createFillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
             withoutDefaultArguments = withoutDefaultArguments,
@@ -72,14 +71,31 @@ class FillClassInspection(
         holder.registerProblem(element, description, fix)
     })
 
-    override fun createOptionsPanel(): JComponent {
-        val panel = MultipleCheckboxOptionsPanel(this)
-        panel.addCheckbox("Fill arguments without default values", "withoutDefaultValues")
-        panel.addCheckbox("Do not fill default arguments", "withoutDefaultArguments")
-        panel.addCheckbox("Append trailing comma", "withTrailingComma")
-        panel.addCheckbox("Put arguments on separate lines", "putArgumentsOnSeparateLines")
-        panel.addCheckbox("Move pointer to every argument", "movePointerToEveryArgument")
-        return panel
+    abstract fun getConstructorPromptTitle(): String
+    abstract fun getFunctionPromptTitle(): String
+
+    open fun createFillClassFix(
+        description: String,
+        withoutDefaultValues: Boolean,
+        withoutDefaultArguments: Boolean,
+        withTrailingComma: Boolean,
+        putArgumentsOnSeparateLines: Boolean,
+        movePointerToEveryArgument: Boolean,
+    ): FillClassFix = FillClassFix(
+        description = description,
+        withoutDefaultValues = withoutDefaultValues,
+        withoutDefaultArguments = withoutDefaultArguments,
+        withTrailingComma = withTrailingComma,
+        putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+        movePointerToEveryArgument = movePointerToEveryArgument
+    )
+
+    companion object {
+        const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill arguments without default values"
+        const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill default arguments"
+        const val LABEL_WITH_TRAILING_COMMA = "Append trailing comma"
+        const val LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES = "Put arguments on separate lines"
+        const val LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT = "Move pointer to every argument"
     }
 }
 
@@ -90,7 +106,7 @@ private fun KtCallElement.analyze(): Pair<ResolvedCall<out CallableDescriptor>, 
     return resolvedCall to descriptor
 }
 
-class FillClassFix(
+open class FillClassFix(
     private val description: String,
     private val withoutDefaultValues: Boolean,
     private val withoutDefaultArguments: Boolean,
@@ -158,13 +174,12 @@ class FillClassFix(
             return factory.createArgument(null, parameter.name)
         }
 
-        val type = parameter.type
-        val defaultValue = type.defaultValue()
-        if (defaultValue != null) {
-            return factory.createArgument(factory.createExpression(defaultValue), parameter.name)
+        val value = fillValue(parameter)
+        if (value != null) {
+            return factory.createArgument(factory.createExpression(value), parameter.name)
         }
 
-        val descriptor = type.constructor.declarationDescriptor as? LazyClassDescriptor
+        val descriptor = parameter.type.constructor.declarationDescriptor as? LazyClassDescriptor
         val modality = descriptor?.modality
         if (descriptor?.kind == ClassKind.ENUM_CLASS || modality == Modality.ABSTRACT || modality == Modality.SEALED) {
             return factory.createArgument(null, parameter.name)
@@ -184,21 +199,26 @@ class FillClassFix(
         return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    private fun KotlinType.defaultValue(): String? = when {
-        KotlinBuiltIns.isBoolean(this) -> "false"
-        KotlinBuiltIns.isChar(this) -> "''"
-        KotlinBuiltIns.isDouble(this) -> "0.0"
-        KotlinBuiltIns.isFloat(this) -> "0.0f"
-        KotlinBuiltIns.isInt(this) || KotlinBuiltIns.isLong(this) || KotlinBuiltIns.isShort(this) -> "0"
-        KotlinBuiltIns.isCollectionOrNullableCollection(this) -> "arrayOf()"
-        KotlinBuiltIns.isNullableAny(this) -> "null"
-        KotlinBuiltIns.isString(this) -> "\"\""
-        KotlinBuiltIns.isListOrNullableList(this) -> "listOf()"
-        KotlinBuiltIns.isSetOrNullableSet(this) -> "setOf()"
-        KotlinBuiltIns.isMapOrNullableMap(this) -> "mapOf()"
-        this.isFunctionType -> lambdaDefaultValue()
-        this.isMarkedNullable -> "null"
-        else -> null
+    protected open fun fillValue(descriptor: ValueParameterDescriptor): String? {
+        val type = descriptor.type
+        return when {
+            KotlinBuiltIns.isBoolean(type) -> "false"
+            KotlinBuiltIns.isChar(type) -> "''"
+            KotlinBuiltIns.isDouble(type) -> "0.0"
+            KotlinBuiltIns.isFloat(type) -> "0.0f"
+            KotlinBuiltIns.isInt(type) ||
+                    KotlinBuiltIns.isLong(type) ||
+                    KotlinBuiltIns.isShort(type) -> "0"
+            KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
+            KotlinBuiltIns.isNullableAny(type) -> "null"
+            KotlinBuiltIns.isString(type) -> "\"\""
+            KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
+            KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
+            KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
+            type.isFunctionType -> type.lambdaDefaultValue()
+            type.isMarkedNullable -> "null"
+            else -> null
+        }
     }
 
     private fun KotlinType.lambdaDefaultValue(): String = buildString {

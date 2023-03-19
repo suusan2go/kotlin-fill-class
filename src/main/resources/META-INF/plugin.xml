@@ -23,12 +23,20 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillClassInspection"
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillDummyValuesInspection"
                          groupPath="Kotlin"
                          groupName="Fill class"
                          enabledByDefault="true"
                          level="INFORMATION"
                          language="kotlin"
-                         displayName="Fill class" />
+                         displayName="Fill with dummy values" />
+
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillEmptyValuesInspection"
+                         groupPath="Kotlin"
+                         groupName="Fill class"
+                         enabledByDefault="true"
+                         level="INFORMATION"
+                         language="kotlin"
+                         displayName="Fill with empty values" />
     </extensions>
 </idea-plugin>

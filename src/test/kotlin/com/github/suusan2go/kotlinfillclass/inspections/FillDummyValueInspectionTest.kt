@@ -4,10 +4,26 @@ import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.mockk.every
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import org.jetbrains.kotlin.idea.KotlinFileType
 
-class FillClassInspectionTest : BasePlatformTestCase() {
+class FillDummyValueInspectionTest : BasePlatformTestCase() {
+
+    override fun setUp() {
+        super.setUp()
+        mockkObject(ValueGenerator)
+    }
+
+    override fun tearDown() {
+        super.tearDown()
+        unmockkObject(ValueGenerator)
+    }
+
     fun `test fill class constructor`() {
+        every { ValueGenerator.randomStringFor("name") } returns "John Smith"
+        every { ValueGenerator.randomNumFor("age") } returns 1234
         doAvailableTest(
             """
             class User(val name: String, val age: Int)
@@ -18,7 +34,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int)
             fun test() {
-                User(name = "", age = 0)
+                User(name = "John Smith", age = 1234)
             }
         """
         )
@@ -36,6 +52,10 @@ class FillClassInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test fill function`() {
+        every { ValueGenerator.randomStringFor("name") } returns "John Smith"
+        every { ValueGenerator.randomStringFor("s") } returns "Foo"
+        every { ValueGenerator.randomNumFor("age") } returns 1234
+        every { ValueGenerator.randomNumFor("t") } returns 2345
         doAvailableTest(
             """
             class User(val name: String, val age: Int)
@@ -48,10 +68,10 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             class User(val name: String, val age: Int)
             fun foo(s: String, t: Int, u: User) {}
             fun test() {
-                foo(s = "", t = 0, u = User(name = "", age = 0))
+                foo(s = "Foo", t = 2345, u = User(name = "John Smith", age = 1234))
             }
         """,
-            "Fill function"
+            "Fill function with dummy values"
         )
     }
 
@@ -74,11 +94,12 @@ class FillClassInspectionTest : BasePlatformTestCase() {
                 foo(1, "b"<caret>) {}
             }
         """,
-            "Fill function"
+            "Fill function with dummy values"
         )
     }
 
     fun `test fill function with lambda argument`() {
+        every { ValueGenerator.randomStringFor("b") } returns "Foo"
         doAvailableTest(
             """
             fun foo(a: Int, b: String, block: () -> Unit) {}
@@ -89,14 +110,20 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: String, block: () -> Unit) {}
             fun main() {
-                foo(1, b = "") {}
+                foo(1, b = "Foo") {}
             }
         """,
-            "Fill function"
+            "Fill function with dummy values"
         )
     }
 
     fun `test fill for non primitive types`() {
+        every { ValueGenerator.randomStringFor(any()) } answers {
+            "Foo${firstArg<String>()}"
+        }
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             class A(a1: String, a2: Int)
@@ -113,7 +140,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             class C
             class D(a: A, b: B, c: C, r: Runnable)
             fun test() {
-                D(a = A(a1 = "", a2 = 0), b = B(b1 = 0, b2 = "", a = A(a1 = "", a2 = 0)), c = C(), r =)
+                D(a = A(a1 = "Fooa1", a2 = 3057), b = B(b1 = 3087, b2 = "Foob2", a = A(a1 = "Fooa1", a2 = 3057)), c = C(), r =)
             }
         """
         )
@@ -207,6 +234,9 @@ class FillClassInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test fill super type call entry`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             open class C(p1: Int, p2: Int)
@@ -214,12 +244,15 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """,
             """
             open class C(p1: Int, p2: Int)
-            class D : C(p1 = 0, p2 = 0)
+            class D : C(p1 = 3521, p2 = 3522)
         """
         )
     }
 
     fun `test extension function`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             class Foo
@@ -232,14 +265,17 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             class Foo
             fun Foo.foo(x: Int, y: Int) {}
             fun test() {
-                Foo().foo(x = 0, y = 0)
+                Foo().foo(x = 120, y = 121)
             }
         """,
-            "Fill function"
+            "Fill function with dummy values"
         )
     }
 
     fun `test imported extension function`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             import Bar.foo
@@ -258,32 +294,15 @@ class FillClassInspectionTest : BasePlatformTestCase() {
                 fun Foo.foo(x: Int, y: Int) {}
             }
             fun test() {
-                Foo().foo(x = 0, y = 0)
+                Foo().foo(x = 120, y = 121)
             }
         """,
-            "Fill function"
-        )
-    }
-
-    fun `test fill class constructor without default values`() {
-        doAvailableTest(
-            """
-            class User(val name: String, val age: Int)
-            fun test() {
-                User(<caret>)
-            }
-        """,
-            """
-            class User(val name: String, val age: Int)
-            fun test() {
-                User(name =, age =)
-            }
-        """,
-            withoutDefaultValues = true
+            "Fill function with dummy values"
         )
     }
 
     fun `test do not fill default arguments`() {
+        every { ValueGenerator.randomStringFor("name") } returns "John Smith"
         doAvailableTest(
             """
             class User(val name: String, val age: Int = 0)
@@ -294,7 +313,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = "")
+                User(name = "John Smith")
             }
         """,
             withoutDefaultArguments = true
@@ -326,11 +345,13 @@ class FillClassInspectionTest : BasePlatformTestCase() {
                 B(f1 = {}, f2 = {}, f3 = { i: Int, s: String?, a: A -> })
             }
         """,
-            withoutDefaultArguments = true, dependencies = listOf(dependency)
+            dependencies = listOf(dependency), withoutDefaultArguments = true
         )
     }
 
     fun `test do not add trailing comma`() {
+        every { ValueGenerator.randomStringFor("name") } returns "John Smith"
+        every { ValueGenerator.randomNumFor("age") } returns 1234
         doAvailableTest(
             """
             class User(val name: String, val age: Int = 0)
@@ -341,7 +362,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = "", age = 0)
+                User(name = "John Smith", age = 1234)
             }
         """,
             withTrailingComma = false
@@ -349,6 +370,8 @@ class FillClassInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test add trailing comma`() {
+        every { ValueGenerator.randomStringFor("name") } returns "John Smith"
+        every { ValueGenerator.randomNumFor("age") } returns 1234
         doAvailableTest(
             """
             class User(val name: String, val age: Int = 0)
@@ -359,7 +382,7 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = "", age = 0,)
+                User(name = "John Smith", age = 1234,)
             }
         """,
             withTrailingComma = true
@@ -367,6 +390,9 @@ class FillClassInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test do not add trailing comma if trailing comma already exists`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
              fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
@@ -382,16 +408,19 @@ class FillClassInspectionTest : BasePlatformTestCase() {
              fun test() {
                  foo(
                      a = 0,
-                     b = 0, c = 0, d = 0,
+                     b = 0, c = 99, d = 100,
                  )
              }
          """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             withTrailingComma = true
         )
     }
 
     fun `test do not put arguments on separate lines`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
@@ -402,15 +431,18 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
             fun test() {
-                foo(a = 0, b = 0, c = 0, d = 0)
+                foo(a = 97, b = 98, c = 99, d = 100)
             }
         """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             putArgumentsOnSeparateLines = false
         )
     }
 
     fun `test put arguments on separate lines`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
@@ -421,18 +453,21 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
             fun test() {
-                foo(a = 0,
-                        b = 0,
-                        c = 0,
-                        d = 0)
+                foo(a = 97,
+                        b = 98,
+                        c = 99,
+                        d = 100)
             }
         """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             putArgumentsOnSeparateLines = true
         )
     }
 
     fun `test put arguments on separate lines with existing arguments`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
@@ -445,16 +480,19 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             fun test() {
                 foo(a = 1,
                         b = 2,
-                        c = 0,
-                        d = 0)
+                        c = 99,
+                        d = 100)
             }
         """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             putArgumentsOnSeparateLines = true
         )
     }
 
     fun `test move pointer to every argument`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
@@ -462,14 +500,17 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """,
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(x = 0<caret>, y = 0, z = 0)
+            val bar = foo(x = 120<caret>, y = 121, z = 122)
         """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             movePointerToEveryArgument = true
         )
     }
 
     fun `test move pointer to every argument with existing arguments`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
@@ -477,14 +518,17 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """,
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(x = 1, y = 0<caret>, z = 0)
+            val bar = foo(x = 1, y = 121<caret>, z = 122)
         """,
-            problemDescription = "Fill function",
+            problemDescription = "Fill function with dummy values",
             movePointerToEveryArgument = true
         )
     }
 
     fun `test move pointer to every argument with putArgumentsOnSeparateLines`() {
+        every { ValueGenerator.randomNumFor(any()) } answers {
+            firstArg<String>().hashCode()
+        }
         doAvailableTest(
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
@@ -492,39 +536,22 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         """,
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(x = 0<caret>,
-                    y = 0,
-                    z = 0)
+            val bar = foo(x = 120<caret>,
+                    y = 121,
+                    z = 122)
         """,
-            problemDescription = "Fill function",
-            movePointerToEveryArgument = true,
-            putArgumentsOnSeparateLines = true
-        )
-    }
-
-    fun `test move pointer to every argument with withoutDefaultValues`() {
-        doAvailableTest(
-            """
-            fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(<caret>)
-        """,
-            """
-            fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(x =<caret>, y =, z =)
-        """,
-            problemDescription = "Fill function",
-            movePointerToEveryArgument = true,
-            withoutDefaultValues = true
+            problemDescription = "Fill function with dummy values",
+            putArgumentsOnSeparateLines = true,
+            movePointerToEveryArgument = true
         )
     }
 
     private fun doAvailableTest(
         before: String,
         after: String,
-        problemDescription: String = "Fill class constructor",
+        problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
-        withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
@@ -535,7 +562,6 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             problemDescription,
             dependencies,
             javaDependencies,
-            withoutDefaultValues,
             withoutDefaultArguments,
             withTrailingComma,
             putArgumentsOnSeparateLines,
@@ -548,10 +574,9 @@ class FillClassInspectionTest : BasePlatformTestCase() {
 
     private fun doUnavailableTest(
         before: String,
-        problemDescription: String = "Fill class constructor",
+        problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String> = emptyList(),
         javaDependencies: List<String> = emptyList(),
-        withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
@@ -562,7 +587,6 @@ class FillClassInspectionTest : BasePlatformTestCase() {
             problemDescription,
             dependencies,
             javaDependencies,
-            withoutDefaultValues,
             withoutDefaultArguments,
             withTrailingComma,
             putArgumentsOnSeparateLines,
@@ -573,10 +597,9 @@ class FillClassInspectionTest : BasePlatformTestCase() {
 
     private fun doHighlighting(
         code: String,
-        problemDescription: String = "Fill class constructor",
+        problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String>,
         javaDependencies: List<String>,
-        withoutDefaultValues: Boolean,
         withoutDefaultArguments: Boolean,
         withTrailingComma: Boolean,
         putArgumentsOnSeparateLines: Boolean,
@@ -592,13 +615,12 @@ class FillClassInspectionTest : BasePlatformTestCase() {
         }
         myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
-        val inspection = FillClassInspection(
-            withoutDefaultValues = withoutDefaultValues,
-            withoutDefaultArguments = withoutDefaultArguments,
-            withTrailingComma = withTrailingComma,
-            putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
-            movePointerToEveryArgument = movePointerToEveryArgument,
-        )
+        val inspection = FillDummyValuesInspection().apply {
+            this.withoutDefaultArguments = withoutDefaultArguments
+            this.withTrailingComma = withTrailingComma
+            this.putArgumentsOnSeparateLines = putArgumentsOnSeparateLines
+            this.movePointerToEveryArgument = movePointerToEveryArgument
+        }
         myFixture.enableInspections(inspection)
 
         val inspectionProfileManager = ProjectInspectionProfileManager.getInstance(project)
@@ -608,7 +630,9 @@ class FillClassInspectionTest : BasePlatformTestCase() {
 
         val caretOffset = myFixture.caretOffset
         return myFixture.doHighlighting().singleOrNull {
-            it.description == problemDescription && caretOffset in it.startOffset..it.endOffset
+            it.inspectionToolId == "FillDummyValues" &&
+                    it.description == problemDescription &&
+                    caretOffset in it.startOffset..it.endOffset
         }
     }
 }
