@@ -30,7 +30,7 @@ class FillDummyValuesInspection : BaseFillClassInspection(withoutDefaultValues =
         withoutDefaultArguments: Boolean,
         withTrailingComma: Boolean,
         putArgumentsOnSeparateLines: Boolean,
-        movePointerToEveryArgument: Boolean
+        movePointerToEveryArgument: Boolean,
     ): FillClassFix {
         return FillDummyValueFix(
             description,
@@ -38,7 +38,7 @@ class FillDummyValuesInspection : BaseFillClassInspection(withoutDefaultValues =
             withoutDefaultArguments,
             withTrailingComma,
             putArgumentsOnSeparateLines,
-            movePointerToEveryArgument
+            movePointerToEveryArgument,
         )
     }
 }
@@ -56,7 +56,7 @@ class FillDummyValueFix(
     withoutDefaultArguments,
     withTrailingComma,
     putArgumentsOnSeparateLines,
-    movePointerToEveryArgument
+    movePointerToEveryArgument,
 ) {
     override fun fillValue(descriptor: ValueParameterDescriptor): String? {
         val type = descriptor.type
@@ -66,8 +66,8 @@ class FillDummyValueFix(
             KotlinBuiltIns.isDouble(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
             KotlinBuiltIns.isFloat(type) -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
             KotlinBuiltIns.isInt(type) ||
-                    KotlinBuiltIns.isLong(type) ||
-                    KotlinBuiltIns.isShort(type) -> "${ValueGenerator.randomNumFor(paramName)}"
+                KotlinBuiltIns.isLong(type) ||
+                KotlinBuiltIns.isShort(type) -> "${ValueGenerator.randomNumFor(paramName)}"
 
             KotlinBuiltIns.isString(type) -> "\"${ValueGenerator.randomStringFor(paramName)}\""
             else -> super.fillValue(descriptor)

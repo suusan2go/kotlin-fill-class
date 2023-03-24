@@ -59,7 +59,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.1'
     testImplementation 'io.mockk:mockk:1.13.4'
 
-    ktlint('com.pinterest:ktlint:0.45.2') {
+    ktlint('com.pinterest:ktlint:0.48.2') {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
         }
