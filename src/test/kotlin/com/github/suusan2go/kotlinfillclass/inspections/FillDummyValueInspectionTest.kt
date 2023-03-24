@@ -36,7 +36,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 User(name = "John Smith", age = 1234)
             }
-        """
+        """,
         )
     }
 
@@ -47,7 +47,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 User("", 0<caret>)
             }
-        """
+        """,
         )
     }
 
@@ -71,7 +71,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 foo(s = "Foo", t = 2345, u = User(name = "John Smith", age = 1234))
             }
         """,
-            "Fill function with dummy values"
+            "Fill function with dummy values",
         )
     }
 
@@ -82,7 +82,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 foo("", 0<caret>)
             }
-        """
+        """,
         )
     }
 
@@ -94,7 +94,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 foo(1, "b"<caret>) {}
             }
         """,
-            "Fill function with dummy values"
+            "Fill function with dummy values",
         )
     }
 
@@ -113,7 +113,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 foo(1, b = "Foo") {}
             }
         """,
-            "Fill function with dummy values"
+            "Fill function with dummy values",
         )
     }
 
@@ -142,7 +142,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 D(a = A(a1 = "Fooa1", a2 = 3057), b = B(b1 = 3087, b2 = "Foob2", a = A(a1 = "Fooa1", a2 = 3057)), c = C(), r =)
             }
-        """
+        """,
         )
     }
 
@@ -169,7 +169,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 Test(a =, b =, c =)
             }
-        """
+        """,
         )
     }
 
@@ -192,7 +192,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             
             val b = B(a = A())
         """,
-            dependencies = listOf(dependency)
+            dependencies = listOf(dependency),
         )
     }
 
@@ -209,7 +209,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 Java(<caret>)
             }
         """,
-            javaDependencies = listOf(javaDependency)
+            javaDependencies = listOf(javaDependency),
         )
     }
 
@@ -229,7 +229,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 Java("").foo(<caret>)
             }
         """,
-            javaDependencies = listOf(javaDependency)
+            javaDependencies = listOf(javaDependency),
         )
     }
 
@@ -245,7 +245,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             """
             open class C(p1: Int, p2: Int)
             class D : C(p1 = 3521, p2 = 3522)
-        """
+        """,
         )
     }
 
@@ -268,7 +268,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 Foo().foo(x = 120, y = 121)
             }
         """,
-            "Fill function with dummy values"
+            "Fill function with dummy values",
         )
     }
 
@@ -297,7 +297,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 Foo().foo(x = 120, y = 121)
             }
         """,
-            "Fill function with dummy values"
+            "Fill function with dummy values",
         )
     }
 
@@ -316,7 +316,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "John Smith")
             }
         """,
-            withoutDefaultArguments = true
+            withoutDefaultArguments = true,
         )
     }
 
@@ -345,7 +345,8 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 B(f1 = {}, f2 = {}, f3 = { i: Int, s: String?, a: A -> })
             }
         """,
-            dependencies = listOf(dependency), withoutDefaultArguments = true
+            dependencies = listOf(dependency),
+            withoutDefaultArguments = true,
         )
     }
 
@@ -365,7 +366,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "John Smith", age = 1234)
             }
         """,
-            withTrailingComma = false
+            withTrailingComma = false,
         )
     }
 
@@ -385,7 +386,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "John Smith", age = 1234,)
             }
         """,
-            withTrailingComma = true
+            withTrailingComma = true,
         )
     }
 
@@ -413,7 +414,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
              }
          """,
             problemDescription = "Fill function with dummy values",
-            withTrailingComma = true
+            withTrailingComma = true,
         )
     }
 
@@ -435,7 +436,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function with dummy values",
-            putArgumentsOnSeparateLines = false
+            putArgumentsOnSeparateLines = false,
         )
     }
 
@@ -460,7 +461,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function with dummy values",
-            putArgumentsOnSeparateLines = true
+            putArgumentsOnSeparateLines = true,
         )
     }
 
@@ -485,7 +486,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function with dummy values",
-            putArgumentsOnSeparateLines = true
+            putArgumentsOnSeparateLines = true,
         )
     }
 
@@ -503,7 +504,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             val bar = foo(x = 120<caret>, y = 121, z = 122)
         """,
             problemDescription = "Fill function with dummy values",
-            movePointerToEveryArgument = true
+            movePointerToEveryArgument = true,
         )
     }
 
@@ -521,7 +522,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             val bar = foo(x = 1, y = 121<caret>, z = 122)
         """,
             problemDescription = "Fill function with dummy values",
-            movePointerToEveryArgument = true
+            movePointerToEveryArgument = true,
         )
     }
 
@@ -542,7 +543,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         """,
             problemDescription = "Fill function with dummy values",
             putArgumentsOnSeparateLines = true,
-            movePointerToEveryArgument = true
+            movePointerToEveryArgument = true,
         )
     }
 
@@ -580,7 +581,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
-        movePointerToEveryArgument: Boolean = false
+        movePointerToEveryArgument: Boolean = false,
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -631,8 +632,8 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         val caretOffset = myFixture.caretOffset
         return myFixture.doHighlighting().singleOrNull {
             it.inspectionToolId == "FillDummyValues" &&
-                    it.description == problemDescription &&
-                    caretOffset in it.startOffset..it.endOffset
+                it.description == problemDescription &&
+                caretOffset in it.startOffset..it.endOffset
         }
     }
 }

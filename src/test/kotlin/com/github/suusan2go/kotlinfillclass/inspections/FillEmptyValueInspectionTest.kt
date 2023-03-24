@@ -20,7 +20,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 User(name = "", age = 0)
             }
-        """
+        """,
         )
     }
 
@@ -31,7 +31,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 User("", 0<caret>)
             }
-        """
+        """,
         )
     }
 
@@ -51,7 +51,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 foo(s = "", t = 0, u = User(name = "", age = 0))
             }
         """,
-            "Fill function"
+            "Fill function",
         )
     }
 
@@ -62,7 +62,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 foo("", 0<caret>)
             }
-        """
+        """,
         )
     }
 
@@ -74,7 +74,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 foo(1, "b"<caret>) {}
             }
         """,
-            "Fill function"
+            "Fill function",
         )
     }
 
@@ -92,7 +92,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 foo(1, b = "") {}
             }
         """,
-            "Fill function"
+            "Fill function",
         )
     }
 
@@ -115,7 +115,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 D(a = A(a1 = "", a2 = 0), b = B(b1 = 0, b2 = "", a = A(a1 = "", a2 = 0)), c = C(), r =)
             }
-        """
+        """,
         )
     }
 
@@ -142,7 +142,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             fun test() {
                 Test(a =, b =, c =)
             }
-        """
+        """,
         )
     }
 
@@ -165,7 +165,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             
             val b = B(a = A())
         """,
-            dependencies = listOf(dependency)
+            dependencies = listOf(dependency),
         )
     }
 
@@ -182,7 +182,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Java(<caret>)
             }
         """,
-            javaDependencies = listOf(javaDependency)
+            javaDependencies = listOf(javaDependency),
         )
     }
 
@@ -202,7 +202,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Java("").foo(<caret>)
             }
         """,
-            javaDependencies = listOf(javaDependency)
+            javaDependencies = listOf(javaDependency),
         )
     }
 
@@ -215,7 +215,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             """
             open class C(p1: Int, p2: Int)
             class D : C(p1 = 0, p2 = 0)
-        """
+        """,
         )
     }
 
@@ -235,7 +235,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Foo().foo(x = 0, y = 0)
             }
         """,
-            "Fill function"
+            "Fill function",
         )
     }
 
@@ -261,7 +261,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Foo().foo(x = 0, y = 0)
             }
         """,
-            "Fill function"
+            "Fill function",
         )
     }
 
@@ -279,7 +279,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 User(name =, age =)
             }
         """,
-            withoutDefaultValues = true
+            withoutDefaultValues = true,
         )
     }
 
@@ -297,7 +297,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "")
             }
         """,
-            withoutDefaultArguments = true
+            withoutDefaultArguments = true,
         )
     }
 
@@ -326,7 +326,8 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 B(f1 = {}, f2 = {}, f3 = { i: Int, s: String?, a: A -> })
             }
         """,
-            withoutDefaultArguments = true, dependencies = listOf(dependency)
+            withoutDefaultArguments = true,
+            dependencies = listOf(dependency),
         )
     }
 
@@ -344,7 +345,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "", age = 0)
             }
         """,
-            withTrailingComma = false
+            withTrailingComma = false,
         )
     }
 
@@ -362,7 +363,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 User(name = "", age = 0,)
             }
         """,
-            withTrailingComma = true
+            withTrailingComma = true,
         )
     }
 
@@ -387,7 +388,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
              }
          """,
             problemDescription = "Fill function",
-            withTrailingComma = true
+            withTrailingComma = true,
         )
     }
 
@@ -406,7 +407,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function",
-            putArgumentsOnSeparateLines = false
+            putArgumentsOnSeparateLines = false,
         )
     }
 
@@ -428,7 +429,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function",
-            putArgumentsOnSeparateLines = true
+            putArgumentsOnSeparateLines = true,
         )
     }
 
@@ -450,7 +451,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             }
         """,
             problemDescription = "Fill function",
-            putArgumentsOnSeparateLines = true
+            putArgumentsOnSeparateLines = true,
         )
     }
 
@@ -465,7 +466,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             val bar = foo(x = 0<caret>, y = 0, z = 0)
         """,
             problemDescription = "Fill function",
-            movePointerToEveryArgument = true
+            movePointerToEveryArgument = true,
         )
     }
 
@@ -480,7 +481,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             val bar = foo(x = 1, y = 0<caret>, z = 0)
         """,
             problemDescription = "Fill function",
-            movePointerToEveryArgument = true
+            movePointerToEveryArgument = true,
         )
     }
 
@@ -498,7 +499,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         """,
             problemDescription = "Fill function",
             movePointerToEveryArgument = true,
-            putArgumentsOnSeparateLines = true
+            putArgumentsOnSeparateLines = true,
         )
     }
 
@@ -514,7 +515,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         """,
             problemDescription = "Fill function",
             movePointerToEveryArgument = true,
-            withoutDefaultValues = true
+            withoutDefaultValues = true,
         )
     }
 
@@ -555,7 +556,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
-        movePointerToEveryArgument: Boolean = false
+        movePointerToEveryArgument: Boolean = false,
     ) {
         val highlightInfo = doHighlighting(
             before,
@@ -609,8 +610,8 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         val caretOffset = myFixture.caretOffset
         return myFixture.doHighlighting().singleOrNull {
             it.inspectionToolId == "FillEmptyValues" &&
-                    it.description == problemDescription &&
-                    caretOffset in it.startOffset..it.endOffset
+                it.description == problemDescription &&
+                caretOffset in it.startOffset..it.endOffset
         }
     }
 }

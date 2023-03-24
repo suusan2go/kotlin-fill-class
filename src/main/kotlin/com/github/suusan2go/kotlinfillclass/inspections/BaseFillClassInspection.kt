@@ -53,7 +53,7 @@ abstract class BaseFillClassInspection(
 ) : AbstractKotlinInspection() {
     override fun buildVisitor(
         holder: ProblemsHolder,
-        isOnTheFly: Boolean
+        isOnTheFly: Boolean,
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
         val callElement = element.parent as? KtCallElement ?: return
         val (_, descriptor) = callElement.analyze() ?: return
@@ -87,7 +87,7 @@ abstract class BaseFillClassInspection(
         withoutDefaultArguments = withoutDefaultArguments,
         withTrailingComma = withTrailingComma,
         putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
-        movePointerToEveryArgument = movePointerToEveryArgument
+        movePointerToEveryArgument = movePointerToEveryArgument,
     )
 
     companion object {
@@ -126,7 +126,7 @@ open class FillClassFix(
 
     private fun KtValueArgumentList.fillArguments(
         parameters: List<ValueParameterDescriptor>,
-        resolvedCall: ResolvedCall<out CallableDescriptor>? = null
+        resolvedCall: ResolvedCall<out CallableDescriptor>? = null,
     ) {
         val arguments = this.arguments
         val argumentSize = arguments.size
@@ -168,7 +168,7 @@ open class FillClassFix(
 
     private fun createDefaultValueArgument(
         parameter: ValueParameterDescriptor,
-        factory: KtPsiFactory
+        factory: KtPsiFactory,
     ): KtValueArgument {
         if (withoutDefaultValues) {
             return factory.createArgument(null, parameter.name)
@@ -207,8 +207,8 @@ open class FillClassFix(
             KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) ||
-                    KotlinBuiltIns.isLong(type) ||
-                    KotlinBuiltIns.isShort(type) -> "0"
+                KotlinBuiltIns.isLong(type) ||
+                KotlinBuiltIns.isShort(type) -> "0"
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
             KotlinBuiltIns.isString(type) -> "\"\""
