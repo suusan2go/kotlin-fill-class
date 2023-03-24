@@ -10,9 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      1.0.17
-      add support 2022.3 and future versions
-      Fix false negative for imported extension function calls
+      1.0.18
+      Add Value Generator
+      Don't fill duplicated lambda argument
     ]]>
     </change-notes>
 
