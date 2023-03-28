@@ -1,5 +1,6 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import javax.swing.JComponent
 
@@ -18,7 +19,9 @@ class FillEmptyValuesInspection : BaseFillClassInspection() {
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_VALUES, "withoutDefaultValues")
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
         panel.addCheckbox(LABEL_WITH_TRAILING_COMMA, "withTrailingComma")
-        panel.addCheckbox(LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES, "putArgumentsOnSeparateLines")
+        if (PutArgumentOnSeparateLineHelper.isAvailable()) {
+            panel.addCheckbox(LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES, "putArgumentsOnSeparateLines")
+        }
         panel.addCheckbox(LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT, "movePointerToEveryArgument")
         return panel
     }
