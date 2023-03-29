@@ -42,7 +42,6 @@ import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
 import org.jetbrains.kotlin.resolve.calls.util.getParameterForArgument
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 abstract class BaseFillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
@@ -120,7 +119,7 @@ open class FillClassFix(
 
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val argumentList = descriptor.psiElement as? KtValueArgumentList ?: return
-        val (resolvedCall, functionDescriptor) = argumentList.parent.safeAs<KtCallElement>()?.analyze() ?: return
+        val (resolvedCall, functionDescriptor) = (argumentList.parent as? KtCallElement)?.analyze() ?: return
         argumentList.fillArguments(functionDescriptor.valueParameters, resolvedCall)
     }
 
@@ -132,7 +131,7 @@ open class FillClassFix(
         val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
 
-        val lambdaArgument = parent.safeAs<KtCallElement>()?.lambdaArguments?.singleOrNull()
+        val lambdaArgument = (parent as? KtCallElement)?.lambdaArguments?.singleOrNull()
         val parameterForLambdaArgument = lambdaArgument?.let { resolvedCall?.getParameterForArgument(it) }
 
         val factory = KtPsiFactory(this)
