@@ -207,8 +207,8 @@ open class FillClassFix(
             KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) ||
-                    KotlinBuiltIns.isLong(type) ||
-                    KotlinBuiltIns.isShort(type) -> "0"
+                KotlinBuiltIns.isLong(type) ||
+                KotlinBuiltIns.isShort(type) -> "0"
 
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
