@@ -10,9 +10,8 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      1.0.18
-      Add Value Generator
-      Don't fill duplicated lambda argument
+      1.0.19
+      Add support
     ]]>
     </change-notes>
 
