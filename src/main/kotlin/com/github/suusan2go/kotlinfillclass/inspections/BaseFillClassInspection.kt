@@ -134,7 +134,7 @@ open class FillClassFix(
         val lambdaArgument = (parent as? KtCallElement)?.lambdaArguments?.singleOrNull()
         val parameterForLambdaArgument = lambdaArgument?.let { resolvedCall?.getParameterForArgument(it) }
 
-        val factory = KtPsiFactory(this)
+        val factory = KtPsiFactory(this.project)
         val needsTrailingComma = withTrailingComma && !hasTrailingComma()
         parameters.forEachIndexed { index, parameter ->
             if (parameter == parameterForLambdaArgument) return@forEachIndexed
