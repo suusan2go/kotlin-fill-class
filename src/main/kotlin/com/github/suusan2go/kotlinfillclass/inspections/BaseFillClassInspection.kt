@@ -5,14 +5,19 @@ import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.PopupStep
+import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.backend.jvm.ir.psiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
-import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
@@ -20,17 +25,20 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.base.fe10.codeInsight.newDeclaration.Fe10KotlinNameSuggester
 import org.jetbrains.kotlin.idea.base.psi.textRangeIn
-import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
+import org.jetbrains.kotlin.idea.caches.resolve.analyze
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.codeinsight.utils.findExistingEditor
 import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.intentions.callExpression
+import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtFunction
+import org.jetbrains.kotlin.psi.KtLambdaArgument
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
@@ -38,10 +46,12 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
-import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
-import org.jetbrains.kotlin.resolve.calls.util.getParameterForArgument
+import org.jetbrains.kotlin.resolve.BindingContext.*
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.utils.ifEmpty
 
 abstract class BaseFillClassInspection(
     @JvmField var withoutDefaultValues: Boolean = false,
@@ -55,10 +65,12 @@ abstract class BaseFillClassInspection(
         isOnTheFly: Boolean,
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
         val callElement = element.parent as? KtCallElement ?: return
-        val (_, descriptor) = callElement.analyze() ?: return
-        if (descriptor.valueParameters.size == callElement.valueArguments.size) return
-        val description =
-            if (descriptor is ClassConstructorDescriptor) getConstructorPromptTitle() else getFunctionPromptTitle()
+        val descriptors = analyze(callElement).ifEmpty { return }
+        val description = if (descriptors.any { (_, descriptor) -> descriptor is ClassConstructorDescriptor }) {
+            getConstructorPromptTitle()
+        } else {
+            getFunctionPromptTitle()
+        }
         val fix = createFillClassFix(
             description = description,
             withoutDefaultValues = withoutDefaultValues,
@@ -98,11 +110,24 @@ abstract class BaseFillClassInspection(
     }
 }
 
-private fun KtCallElement.analyze(): Pair<ResolvedCall<out CallableDescriptor>, FunctionDescriptor>? {
-    val resolvedCall = calleeExpression?.resolveToCall() ?: return null
-    val descriptor = resolvedCall.resultingDescriptor as? FunctionDescriptor ?: return null
-    if (descriptor is JavaCallableMemberDescriptor) return null
-    return resolvedCall to descriptor
+private fun analyze(call: KtCallElement): List<Pair<KtFunction, FunctionDescriptor>> {
+    val context = call.analyze(BodyResolveMode.PARTIAL)
+    val resolvedCall = call.calleeExpression?.getResolvedCall(context)
+    val descriptors = if (resolvedCall != null) {
+        val descriptor = resolvedCall.resultingDescriptor as? FunctionDescriptor ?: return emptyList()
+        val func = descriptor.psiElement as? KtFunction ?: return emptyList()
+        listOf(func to descriptor)
+    } else {
+        call.calleeExpression?.mainReference?.multiResolve(false).orEmpty().mapNotNull {
+            val func = it.element as? KtFunction ?: return@mapNotNull null
+            val descriptor = context[DECLARATION_TO_DESCRIPTOR, func] as? FunctionDescriptor ?: return@mapNotNull null
+            func to descriptor
+        }
+    }
+    val argumentSize = call.valueArguments.size
+    return descriptors.filter { (_, descriptor) ->
+        descriptor !is JavaCallableMemberDescriptor && descriptor.valueParameters.size > argumentSize
+    }
 }
 
 open class FillClassFix(
@@ -119,27 +144,81 @@ open class FillClassFix(
 
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val argumentList = descriptor.psiElement as? KtValueArgumentList ?: return
-        val (resolvedCall, functionDescriptor) = (argumentList.parent as? KtCallElement)?.analyze() ?: return
+        val call = argumentList.parent as? KtCallElement ?: return
+        val descriptors = analyze(call).ifEmpty { return }
+
+        val lambdaArgument = call.lambdaArguments.singleOrNull()
         val editor = argumentList.findExistingEditor()
-        argumentList.fillArguments(functionDescriptor.valueParameters, editor, resolvedCall)
+        if (descriptors.size == 1 || editor == null) {
+            argumentList.fillArguments(descriptors.first().second, editor, lambdaArgument)
+        } else {
+            val listPopup = createListPopup(argumentList, descriptors, editor)
+            JBPopupFactory.getInstance().createListPopup(listPopup).showInBestPositionFor(editor)
+        }
+    }
+
+    private fun createListPopup(
+        argumentList: KtValueArgumentList,
+        descriptors: List<Pair<KtFunction, FunctionDescriptor>>,
+        editor: Editor?,
+    ): BaseListPopupStep<String> {
+        val functionName = descriptors.first().let { (_, descriptor) ->
+            if (descriptor is ClassConstructorDescriptor) {
+                descriptor.containingDeclaration.name.asString()
+            } else {
+                descriptor.name.asString()
+            }
+        }
+        val functions = descriptors
+            .sortedBy { (_, descriptor) -> descriptor.valueParameters.size }
+            .associate { (function, descriptor) ->
+                val key = function.valueParameters.joinToString(
+                    separator = ", ",
+                    prefix = "$functionName(",
+                    postfix = ")",
+                    transform = { "${it.name}: ${it.typeReference?.text ?: ""}" },
+                )
+                key to descriptor
+            }
+        return object : BaseListPopupStep<String>("Choose Function", functions.keys.toList()) {
+            override fun isAutoSelectionEnabled() = false
+
+            override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
+                if (finalChoice) {
+                    val parameters = functions[selectedValue]?.valueParameters.orEmpty()
+                    CommandProcessor.getInstance().runUndoTransparentAction {
+                        runWriteAction {
+                            argumentList.fillArguments(parameters, editor)
+                        }
+                    }
+                }
+                return PopupStep.FINAL_CHOICE
+            }
+        }
+    }
+
+    private fun KtValueArgumentList.fillArguments(
+        descriptor: FunctionDescriptor,
+        editor: Editor?,
+        lambdaArgument: KtLambdaArgument?,
+    ) {
+        fillArguments(descriptor.valueParameters, editor, lambdaArgument)
     }
 
     private fun KtValueArgumentList.fillArguments(
         parameters: List<ValueParameterDescriptor>,
         editor: Editor?,
-        resolvedCall: ResolvedCall<out CallableDescriptor>? = null,
+        lambdaArgument: KtLambdaArgument? = null,
     ) {
         val arguments = this.arguments
         val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
 
-        val lambdaArgument = (parent as? KtCallElement)?.lambdaArguments?.singleOrNull()
-        val parameterForLambdaArgument = lambdaArgument?.let { resolvedCall?.getParameterForArgument(it) }
-
         val factory = KtPsiFactory(this.project)
         val needsTrailingComma = withTrailingComma && !hasTrailingComma()
+        val lastIndex = parameters.size - 1
         parameters.forEachIndexed { index, parameter ->
-            if (parameter == parameterForLambdaArgument) return@forEachIndexed
+            if (lambdaArgument != null && index == lastIndex && parameter.type.isFunctionType) return@forEachIndexed
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
