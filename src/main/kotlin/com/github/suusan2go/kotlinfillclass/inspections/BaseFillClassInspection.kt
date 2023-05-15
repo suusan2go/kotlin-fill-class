@@ -120,11 +120,13 @@ open class FillClassFix(
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val argumentList = descriptor.psiElement as? KtValueArgumentList ?: return
         val (resolvedCall, functionDescriptor) = (argumentList.parent as? KtCallElement)?.analyze() ?: return
-        argumentList.fillArguments(functionDescriptor.valueParameters, resolvedCall)
+        val editor = argumentList.findExistingEditor()
+        argumentList.fillArguments(functionDescriptor.valueParameters, editor, resolvedCall)
     }
 
     private fun KtValueArgumentList.fillArguments(
         parameters: List<ValueParameterDescriptor>,
+        editor: Editor?,
         resolvedCall: ResolvedCall<out CallableDescriptor>? = null,
     ) {
         val arguments = this.arguments
@@ -142,7 +144,7 @@ open class FillClassFix(
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
 
-            val added = addArgument(createDefaultValueArgument(parameter, factory))
+            val added = addArgument(createDefaultValueArgument(parameter, factory, editor))
             val argumentExpression = added.getArgumentExpression()
             if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
                 ShortenReferences.DEFAULT.process(argumentExpression)
@@ -151,7 +153,6 @@ open class FillClassFix(
                 argumentExpression?.addCommaAfter(factory)
             }
         }
-        val editor = findExistingEditor()
         if (editor != null) {
             if (putArgumentsOnSeparateLines || movePointerToEveryArgument) {
                 PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
@@ -168,6 +169,7 @@ open class FillClassFix(
     private fun createDefaultValueArgument(
         parameter: ValueParameterDescriptor,
         factory: KtPsiFactory,
+        editor: Editor?,
     ): KtValueArgument {
         if (withoutDefaultValues) {
             return factory.createArgument(null, parameter.name)
@@ -190,7 +192,7 @@ open class FillClassFix(
         val argumentExpression = if (fqName != null && valueParameters != null) {
             (factory.createExpression("$fqName()")).also {
                 val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
-                callExpression?.valueArgumentList?.fillArguments(valueParameters)
+                callExpression?.valueArgumentList?.fillArguments(valueParameters, editor)
             }
         } else {
             null
