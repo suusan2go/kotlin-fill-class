@@ -46,7 +46,8 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
-import org.jetbrains.kotlin.resolve.BindingContext.*
+import org.jetbrains.kotlin.resolve.BindingContext.DECLARATION_TO_DESCRIPTOR
+import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
@@ -126,7 +127,8 @@ private fun analyze(call: KtCallElement): List<Pair<KtFunction, FunctionDescript
     }
     val argumentSize = call.valueArguments.size
     return descriptors.filter { (_, descriptor) ->
-        descriptor !is JavaCallableMemberDescriptor && descriptor.valueParameters.size > argumentSize
+        descriptor !is JavaCallableMemberDescriptor &&
+            descriptor.valueParameters.filterNot { it.isVararg }.size > argumentSize
     }
 }
 
@@ -221,6 +223,7 @@ open class FillClassFix(
             if (lambdaArgument != null && index == lastIndex && parameter.type.isFunctionType) return@forEachIndexed
             if (arguments.size > index && !arguments[index].isNamed()) return@forEachIndexed
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
+            if (parameter.isVararg) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
 
             val added = addArgument(createDefaultValueArgument(parameter, factory, editor))

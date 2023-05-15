@@ -519,6 +519,36 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test only vararg argument`() {
+        doUnavailableTest(
+            """
+            fun bar(vararg s: String) {}
+            fun main() {
+                bar(<caret>)
+            }
+        """,
+            "Fill function",
+        )
+    }
+
+    fun `test don't fill vararg`() {
+        doAvailableTest(
+            """
+            fun foo(i: Int, vararg s: String) {}
+            fun main() {
+                foo(<caret>)
+            }
+        """,
+            """
+            fun foo(i: Int, vararg s: String) {}
+            fun main() {
+                foo(i = 0)
+            }
+        """,
+            "Fill function",
+        )
+    }
+
     private fun doAvailableTest(
         before: String,
         after: String,
