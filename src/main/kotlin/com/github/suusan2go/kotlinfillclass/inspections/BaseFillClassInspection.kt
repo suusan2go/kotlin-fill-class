@@ -154,13 +154,14 @@ open class FillClassFix(
         if (descriptors.size == 1 || editor == null) {
             argumentList.fillArguments(descriptors.first().second, editor, lambdaArgument)
         } else {
-            val listPopup = createListPopup(argumentList, descriptors, editor)
+            val listPopup = createListPopup(argumentList, lambdaArgument, descriptors, editor)
             JBPopupFactory.getInstance().createListPopup(listPopup).showInBestPositionFor(editor)
         }
     }
 
     private fun createListPopup(
         argumentList: KtValueArgumentList,
+        lambdaArgument: KtLambdaArgument?,
         descriptors: List<Pair<KtFunction, FunctionDescriptor>>,
         editor: Editor?,
     ): BaseListPopupStep<String> {
@@ -190,7 +191,7 @@ open class FillClassFix(
                     val parameters = functions[selectedValue]?.valueParameters.orEmpty()
                     CommandProcessor.getInstance().runUndoTransparentAction {
                         runWriteAction {
-                            argumentList.fillArguments(parameters, editor)
+                            argumentList.fillArguments(parameters, editor, lambdaArgument)
                         }
                     }
                 }
