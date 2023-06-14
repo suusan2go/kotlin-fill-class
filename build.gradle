@@ -29,7 +29,7 @@ intellij {
         token = System.getenv('TOKEN')
     }
     patchPluginXml {
-        sinceBuild = '191.8026.42'
+        sinceBuild = '221.5080.210'
     }
 }
 
