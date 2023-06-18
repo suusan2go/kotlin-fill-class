@@ -10,8 +10,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      1.0.19.1
-      Fixed compatibility issues with IDEA 2022.3 and earlier
+      <h2>1.0.20</h2>
+      <ul>
+        <li>Don't fill varargs</li>
+        <li>Support overloaded functions</li>
+      </ul>
     ]]>
     </change-notes>
 
