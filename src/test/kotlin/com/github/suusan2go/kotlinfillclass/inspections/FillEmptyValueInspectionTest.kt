@@ -119,6 +119,69 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test fill for non primitive types and put argument on separate lines enabled`() {
+        doAvailableTest(
+            before = """
+                class A(a1: String, a2: Int)
+                class B(b1: Int, b2: String, a: A)
+                class C
+                class D(a: A, b: B, c: C, r: Runnable)
+                
+                fun test() {
+                    D(<caret>)
+                }
+            """,
+            after = """
+                class A(a1: String, a2: Int)
+                class B(b1: Int, b2: String, a: A)
+                class C
+                class D(a: A, b: B, c: C, r: Runnable)
+
+                fun test() {
+                    D(a = A(a1 = "",
+                            a2 = 0),
+                            b = B(b1 = 0,
+                                    b2 = "",
+                                    a = A(a1 = "",
+                                            a2 = 0)),
+                            c = C(),
+                            r =)
+                }
+            """,
+            putArgumentsOnSeparateLines = true,
+        )
+    }
+
+    fun `test fill for non primitive types when some params are filled`() {
+        doAvailableTest(
+            before = """
+                class A(a1: String, a2: Int)
+                class B(b1: Int, b2: String, a: A)
+                class C
+                class D(a: A, b: B, c: C, r: Runnable)
+                
+                fun test() {
+                    D(b = B(1, "", A("", 2))<caret>)
+                }
+            """,
+            after = """
+                class A(a1: String, a2: Int)
+                class B(b1: Int, b2: String, a: A)
+                class C
+                class D(a: A, b: B, c: C, r: Runnable)
+
+                fun test() {
+                    D(b = B(1, "", A("", 2)),
+                            a = A(a1 = "",
+                                    a2 = 0),
+                            c = C(),
+                            r =)
+                }
+            """,
+            putArgumentsOnSeparateLines = true,
+        )
+    }
+
     fun `test don't add default value for enum,abstract,sealed`() {
         doAvailableTest(
             """

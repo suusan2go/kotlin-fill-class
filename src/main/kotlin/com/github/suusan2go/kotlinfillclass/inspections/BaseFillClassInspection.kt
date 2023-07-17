@@ -24,12 +24,12 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
+import org.jetbrains.kotlin.idea.inspections.findExistingEditor
 import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.idea.core.KotlinNameSuggester
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.imports.importableFqName
 import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
-import org.jetbrains.kotlin.idea.inspections.findExistingEditor
 import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.util.textRangeIn
@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.psi.psiUtil.forEachDescendantOfTypeVisitor
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.BindingContext.DECLARATION_TO_DESCRIPTOR
@@ -152,7 +153,11 @@ open class FillClassFix(
         val lambdaArgument = call.lambdaArguments.singleOrNull()
         val editor = argumentList.findExistingEditor()
         if (descriptors.size == 1 || editor == null) {
-            argumentList.fillArguments(descriptors.first().second, editor, lambdaArgument)
+            argumentList.fillArgumentsAndFormat(
+                descriptor = descriptors.first().second,
+                editor = editor,
+                lambdaArgument = lambdaArgument,
+            )
         } else {
             val listPopup = createListPopup(argumentList, lambdaArgument, descriptors, editor)
             JBPopupFactory.getInstance().createListPopup(listPopup).showInBestPositionFor(editor)
@@ -191,7 +196,7 @@ open class FillClassFix(
                     val parameters = functions[selectedValue]?.valueParameters.orEmpty()
                     CommandProcessor.getInstance().runUndoTransparentAction {
                         runWriteAction {
-                            argumentList.fillArguments(parameters, editor, lambdaArgument)
+                            argumentList.fillArgumentsAndFormat(parameters, editor, lambdaArgument)
                         }
                     }
                 }
@@ -200,12 +205,43 @@ open class FillClassFix(
         }
     }
 
-    private fun KtValueArgumentList.fillArguments(
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
         descriptor: FunctionDescriptor,
         editor: Editor?,
         lambdaArgument: KtLambdaArgument?,
     ) {
-        fillArguments(descriptor.valueParameters, editor, lambdaArgument)
+        fillArgumentsAndFormat(descriptor.valueParameters, editor, lambdaArgument)
+    }
+
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
+        parameters: List<ValueParameterDescriptor>,
+        editor: Editor?,
+        lambdaArgument: KtLambdaArgument? = null,
+    ) {
+        val argumentSize = arguments.size
+        fillArguments(parameters, editor, lambdaArgument)
+
+        // post-fill process
+        if (editor != null) {
+            if (putArgumentsOnSeparateLines || movePointerToEveryArgument) {
+                PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+            }
+            if (putArgumentsOnSeparateLines) {
+                if (this.arguments.isNotEmpty()) {
+                    PutArgumentOnSeparateLineHelper.applyTo(this, editor)
+                }
+                for (argument in this.arguments.subList(argumentSize, this.arguments.size)) {
+                    forEachDescendantOfTypeVisitor<KtValueArgumentList> {
+                        if (it.arguments.isNotEmpty()) {
+                            PutArgumentOnSeparateLineHelper.applyTo(it, editor)
+                        }
+                    }.visitKtElement(argument)
+                }
+            }
+            if (movePointerToEveryArgument) {
+                startToReplaceArguments(argumentSize, editor)
+            }
+        }
     }
 
     private fun KtValueArgumentList.fillArguments(
@@ -214,7 +250,6 @@ open class FillClassFix(
         lambdaArgument: KtLambdaArgument? = null,
     ) {
         val arguments = this.arguments
-        val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
 
         val factory = KtPsiFactory(this.project)
@@ -234,17 +269,6 @@ open class FillClassFix(
             }
             if (needsTrailingComma && index == parameters.lastIndex) {
                 argumentExpression?.addCommaAfter(factory)
-            }
-        }
-        if (editor != null) {
-            if (putArgumentsOnSeparateLines || movePointerToEveryArgument) {
-                PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
-            }
-            if (putArgumentsOnSeparateLines) {
-                PutArgumentOnSeparateLineHelper.applyTo(this, editor)
-            }
-            if (movePointerToEveryArgument) {
-                startToReplaceArguments(argumentSize, editor)
             }
         }
     }
