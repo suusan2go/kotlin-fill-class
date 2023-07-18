@@ -232,6 +232,75 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test add import directives on complex type`() {
+        val dependency = """
+            package com.example
+
+            class A(a1: String, a2: Int)
+            class B(b1: Int, b2: String, a: A)
+            class C
+            class D(a: A, b: B, c: C, r: Runnable)
+        """
+        doAvailableTest(
+            dependencies = listOf(dependency),
+            before = """
+                import com.example.D
+                
+                fun test() {
+                    D(<caret>)
+                }
+            """,
+            after = """
+                import com.example.A
+                import com.example.B
+                import com.example.C
+                import com.example.D
+
+                fun test() {
+                    D(a = A(a1 = "",
+                            a2 = 0),
+                            b = B(b1 = 0,
+                                    b2 = "",
+                                    a = A(a1 = "",
+                                            a2 = 0)),
+                            c = C(),
+                            r =)
+                }
+            """,
+            putArgumentsOnSeparateLines = true,
+        )
+    }
+
+    fun `test add import directives of lambda argument`() {
+        val dependency = """
+            package com.example
+
+            class A
+            class B
+            fun runCallback(callback: (A, B) -> Unit) {}
+        """
+        doAvailableTest(
+            dependencies = listOf(dependency),
+            before = """
+                import com.example.runCallback
+                
+                fun test() {
+                    runCallback(<caret>)
+                }
+            """,
+            after = """
+                import com.example.A
+                import com.example.B
+                import com.example.runCallback
+
+                fun test() {
+                    runCallback(callback = { a: A, b: B -> })
+                }
+            """,
+            problemDescription = "Fill function"
+        )
+    }
+
     fun `test call java constructor`() {
         val javaDependency = """
             public class Java {
