@@ -18,9 +18,17 @@ object ValueGenerator {
         return when {
             // names
             paramName.contains("url", ignoreCase = true) -> lorem.url
-            paramName.contains("city", ignoreCase = true) -> lorem.city
+            paramName.contains("city", ignoreCase = true) -> {
+                // lorem.city sometimes returns invalid characters
+                var city = lorem.city
+                while (city.contains("\uFFFD")) {
+                    city = lorem.city
+                }
+                return city
+            }
             paramName.contains("country", ignoreCase = true) -> lorem.country
-            paramName.contains("email", ignoreCase = true) -> lorem.email
+            // lorem.email sometimes contains single quote
+            paramName.contains("email", ignoreCase = true) -> lorem.email.replace("'", "")
             paramName.contains("phone", ignoreCase = true) -> lorem.phone
             paramName.contains("state", ignoreCase = true) -> lorem.stateFull
             paramName.contains("zip", ignoreCase = true) -> lorem.zipCode
