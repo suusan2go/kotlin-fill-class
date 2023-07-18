@@ -10,10 +10,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>1.0.20</h2>
+      <h2>1.0.21</h2>
       <ul>
-        <li>Don't fill varargs</li>
-        <li>Support overloaded functions</li>
+        <li>Fixed bugs that occurred when "Put argument on separate line" was enabled.</li>
       </ul>
     ]]>
     </change-notes>
