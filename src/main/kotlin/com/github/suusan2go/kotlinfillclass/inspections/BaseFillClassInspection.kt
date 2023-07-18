@@ -14,7 +14,6 @@ import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.backend.jvm.ir.psiElement
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
@@ -37,6 +36,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtLambdaArgument
 import org.jetbrains.kotlin.psi.KtLambdaExpression
@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
+import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.BindingContext.DECLARATION_TO_DESCRIPTOR
@@ -152,7 +153,11 @@ open class FillClassFix(
         val lambdaArgument = call.lambdaArguments.singleOrNull()
         val editor = argumentList.findExistingEditor()
         if (descriptors.size == 1 || editor == null) {
-            argumentList.fillArguments(descriptors.first().second, editor, lambdaArgument)
+            argumentList.fillArgumentsAndFormat(
+                descriptor = descriptors.first().second,
+                editor = editor,
+                lambdaArgument = lambdaArgument,
+            )
         } else {
             val listPopup = createListPopup(argumentList, lambdaArgument, descriptors, editor)
             JBPopupFactory.getInstance().createListPopup(listPopup).showInBestPositionFor(editor)
@@ -191,7 +196,7 @@ open class FillClassFix(
                     val parameters = functions[selectedValue]?.valueParameters.orEmpty()
                     CommandProcessor.getInstance().runUndoTransparentAction {
                         runWriteAction {
-                            argumentList.fillArguments(parameters, editor, lambdaArgument)
+                            argumentList.fillArgumentsAndFormat(parameters, editor, lambdaArgument)
                         }
                     }
                 }
@@ -200,25 +205,67 @@ open class FillClassFix(
         }
     }
 
-    private fun KtValueArgumentList.fillArguments(
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
         descriptor: FunctionDescriptor,
         editor: Editor?,
         lambdaArgument: KtLambdaArgument?,
     ) {
-        fillArguments(descriptor.valueParameters, editor, lambdaArgument)
+        fillArgumentsAndFormat(descriptor.valueParameters, editor, lambdaArgument)
+    }
+
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
+        parameters: List<ValueParameterDescriptor>,
+        editor: Editor?,
+        lambdaArgument: KtLambdaArgument? = null,
+    ) {
+        val argumentSize = arguments.size
+        val factory = KtPsiFactory(this.project)
+        fillArguments(factory, parameters, editor, lambdaArgument)
+
+        // post-fill process
+
+        // 1. Put arguments on separate lines
+        if (editor != null && putArgumentsOnSeparateLines) {
+            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+            if (this.arguments.isNotEmpty()) {
+                PutArgumentOnSeparateLineHelper.applyTo(this, editor)
+            }
+            findElementsInArgsByType<KtValueArgumentList>(argumentSize)
+                .filter { it.arguments.isNotEmpty() }
+                .forEach { PutArgumentOnSeparateLineHelper.applyTo(it, editor) }
+        }
+
+        // 2. Add trailing commas
+        if (withTrailingComma) {
+            addTrailingCommaIfNeeded(factory)
+            findElementsInArgsByType<KtValueArgumentList>(argumentSize)
+                .forEach { it.addTrailingCommaIfNeeded(factory) }
+        }
+
+        // 3. Remove full qualifiers and import references
+        // This should be run after PutArgumentOnSeparateLineHelper
+        findElementsInArgsByType<KtQualifiedExpression>(argumentSize)
+            .forEach { ShortenReferences.DEFAULT.process(it) }
+        findElementsInArgsByType<KtLambdaExpression>(argumentSize)
+            .forEach { ShortenReferences.DEFAULT.process(it) }
+
+        // 4. Set argument placeholders
+        // This should be run on final state
+        if (editor != null && movePointerToEveryArgument) {
+            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
+            startToReplaceArguments(argumentSize, editor)
+        }
     }
 
     private fun KtValueArgumentList.fillArguments(
+        factory: KtPsiFactory,
         parameters: List<ValueParameterDescriptor>,
         editor: Editor?,
         lambdaArgument: KtLambdaArgument? = null,
     ) {
         val arguments = this.arguments
-        val argumentSize = arguments.size
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
 
-        val factory = KtPsiFactory(this.project)
-        val needsTrailingComma = withTrailingComma && !hasTrailingComma()
         val lastIndex = parameters.size - 1
         parameters.forEachIndexed { index, parameter ->
             if (lambdaArgument != null && index == lastIndex && parameter.type.isFunctionType) return@forEachIndexed
@@ -226,26 +273,7 @@ open class FillClassFix(
             if (parameter.name.identifier in argumentNames) return@forEachIndexed
             if (parameter.isVararg) return@forEachIndexed
             if (withoutDefaultArguments && parameter.declaresDefaultValue()) return@forEachIndexed
-
-            val added = addArgument(createDefaultValueArgument(parameter, factory, editor))
-            val argumentExpression = added.getArgumentExpression()
-            if (argumentExpression is KtQualifiedExpression || argumentExpression is KtLambdaExpression) {
-                ShortenReferences.DEFAULT.process(argumentExpression)
-            }
-            if (needsTrailingComma && index == parameters.lastIndex) {
-                argumentExpression?.addCommaAfter(factory)
-            }
-        }
-        if (editor != null) {
-            if (putArgumentsOnSeparateLines || movePointerToEveryArgument) {
-                PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
-            }
-            if (putArgumentsOnSeparateLines) {
-                PutArgumentOnSeparateLineHelper.applyTo(this, editor)
-            }
-            if (movePointerToEveryArgument) {
-                startToReplaceArguments(argumentSize, editor)
-            }
+            addArgument(createDefaultValueArgument(parameter, factory, editor))
         }
     }
 
@@ -275,7 +303,7 @@ open class FillClassFix(
         val argumentExpression = if (fqName != null && valueParameters != null) {
             (factory.createExpression("$fqName()")).also {
                 val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
-                callExpression?.valueArgumentList?.fillArguments(valueParameters, editor)
+                callExpression?.valueArgumentList?.fillArguments(factory, valueParameters, editor)
             }
         } else {
             null
@@ -323,9 +351,17 @@ open class FillClassFix(
         append("}")
     }
 
-    private fun PsiElement.addCommaAfter(factory: KtPsiFactory) {
-        val comma = factory.createComma()
-        parent.addAfter(comma, this)
+    private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
+        return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
+            argument.collectDescendantsOfType<T>()
+        }
+    }
+
+    private fun KtValueArgumentList.addTrailingCommaIfNeeded(factory: KtPsiFactory) {
+        if (this.arguments.isNotEmpty() && !this.hasTrailingComma()) {
+            val comma = factory.createComma()
+            this.arguments.last().addAfter(comma, this)
+        }
     }
 
     private fun KtValueArgumentList.hasTrailingComma() =
@@ -338,7 +374,8 @@ open class FillClassFix(
             if (argumentExpression != null) {
                 templateBuilder.replaceElement(argumentExpression, argumentExpression.text)
             } else {
-                val endOffset = argument.textRangeIn(this).endOffset
+                val commaOffset = if (argument.text.lastOrNull() == ',') 1 else 0
+                val endOffset = argument.textRangeIn(this).endOffset - commaOffset
                 templateBuilder.replaceRange(TextRange(endOffset, endOffset), "")
             }
         }
