@@ -351,7 +351,7 @@ open class FillClassFix(
         append("}")
     }
 
-    private inline fun <reified T: KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
+    private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
         return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
             argument.collectDescendantsOfType<T>()
         }

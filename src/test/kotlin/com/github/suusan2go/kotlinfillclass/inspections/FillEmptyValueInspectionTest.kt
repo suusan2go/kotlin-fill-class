@@ -297,7 +297,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                     runCallback(callback = { a: A, b: B -> })
                 }
             """,
-            problemDescription = "Fill function"
+            problemDescription = "Fill function",
         )
     }
 
