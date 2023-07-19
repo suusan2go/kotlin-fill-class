@@ -119,6 +119,29 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test fill for non primitive types that has secondary constructor`() {
+        doAvailableTest(
+            """
+            class A(a1: String, a2: Int) {
+                constructor(a1: String, a2: Int, a3: Boolean) : this(a1, a2)
+            }
+            class B(a: A)
+            fun test() {
+                B(<caret>)
+            }
+        """,
+            """
+            class A(a1: String, a2: Int) {
+                constructor(a1: String, a2: Int, a3: Boolean) : this(a1, a2)
+            }
+            class B(a: A)
+            fun test() {
+                B(a = A(a1 = "", a2 = 0))
+            }
+        """,
+        )
+    }
+
     fun `test fill for non primitive types and put argument on separate lines enabled`() {
         doAvailableTest(
             before = """
