@@ -298,8 +298,10 @@ open class FillClassFix(
         }
 
         val fqName = descriptor?.importableFqName?.asString()
-        val valueParameters =
-            descriptor?.constructors?.firstOrNull { it is ClassConstructorDescriptor }?.valueParameters
+        val valueParameters = descriptor?.constructors
+            ?.sortedByDescending { it.isPrimary } // primary constructor first
+            ?.firstOrNull { it is ClassConstructorDescriptor }
+            ?.valueParameters
         val argumentExpression = if (fqName != null && valueParameters != null) {
             (factory.createExpression("$fqName()")).also {
                 val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
