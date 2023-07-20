@@ -8,6 +8,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.impl.ImaginaryEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
@@ -152,7 +153,8 @@ open class FillClassFix(
 
         val lambdaArgument = call.lambdaArguments.singleOrNull()
         val editor = argumentList.findExistingEditor()
-        if (descriptors.size == 1 || editor == null) {
+            ?: ImaginaryEditor(project, argumentList.containingFile.viewProvider.document)
+        if (descriptors.size == 1 || editor is ImaginaryEditor) {
             argumentList.fillArgumentsAndFormat(
                 descriptor = descriptors.first().second,
                 editor = editor,
@@ -168,7 +170,7 @@ open class FillClassFix(
         argumentList: KtValueArgumentList,
         lambdaArgument: KtLambdaArgument?,
         descriptors: List<Pair<KtFunction, FunctionDescriptor>>,
-        editor: Editor?,
+        editor: Editor,
     ): BaseListPopupStep<String> {
         val functionName = descriptors.first().let { (_, descriptor) ->
             if (descriptor is ClassConstructorDescriptor) {
@@ -207,7 +209,7 @@ open class FillClassFix(
 
     private fun KtValueArgumentList.fillArgumentsAndFormat(
         descriptor: FunctionDescriptor,
-        editor: Editor?,
+        editor: Editor,
         lambdaArgument: KtLambdaArgument?,
     ) {
         fillArgumentsAndFormat(descriptor.valueParameters, editor, lambdaArgument)
@@ -215,7 +217,7 @@ open class FillClassFix(
 
     private fun KtValueArgumentList.fillArgumentsAndFormat(
         parameters: List<ValueParameterDescriptor>,
-        editor: Editor?,
+        editor: Editor,
         lambdaArgument: KtLambdaArgument? = null,
     ) {
         val argumentSize = arguments.size
@@ -225,7 +227,7 @@ open class FillClassFix(
         // post-fill process
 
         // 1. Put arguments on separate lines
-        if (editor != null && putArgumentsOnSeparateLines) {
+        if (putArgumentsOnSeparateLines) {
             PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
             if (this.arguments.isNotEmpty()) {
                 PutArgumentOnSeparateLineHelper.applyTo(this, editor)
@@ -251,7 +253,7 @@ open class FillClassFix(
 
         // 4. Set argument placeholders
         // This should be run on final state
-        if (editor != null && movePointerToEveryArgument) {
+        if (editor !is ImaginaryEditor && movePointerToEveryArgument) {
             PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(editor.document)
             startToReplaceArguments(argumentSize, editor)
         }
@@ -260,7 +262,7 @@ open class FillClassFix(
     private fun KtValueArgumentList.fillArguments(
         factory: KtPsiFactory,
         parameters: List<ValueParameterDescriptor>,
-        editor: Editor?,
+        editor: Editor,
         lambdaArgument: KtLambdaArgument? = null,
     ) {
         val arguments = this.arguments
@@ -280,7 +282,7 @@ open class FillClassFix(
     private fun createDefaultValueArgument(
         parameter: ValueParameterDescriptor,
         factory: KtPsiFactory,
-        editor: Editor?,
+        editor: Editor,
     ): KtValueArgument {
         if (withoutDefaultValues) {
             return factory.createArgument(null, parameter.name)
