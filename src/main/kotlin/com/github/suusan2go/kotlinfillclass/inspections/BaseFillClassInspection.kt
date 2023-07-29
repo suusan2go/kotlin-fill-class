@@ -364,7 +364,7 @@ open class FillClassFix(
     private fun KtValueArgumentList.addTrailingCommaIfNeeded(factory: KtPsiFactory) {
         if (this.arguments.isNotEmpty() && !this.hasTrailingComma()) {
             val comma = factory.createComma()
-            this.arguments.last().addAfter(comma, this)
+            this.addAfter(comma, this.arguments.last())
         }
     }
 

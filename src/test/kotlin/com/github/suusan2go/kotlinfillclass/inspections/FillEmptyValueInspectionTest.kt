@@ -96,6 +96,28 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test fill function with lambda argument and trailing comma`() {
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1<caret>) {}
+            }
+        """,
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1,
+                        b = "",
+                ) {}
+            }
+        """,
+            "Fill function",
+            withTrailingComma = true,
+            putArgumentsOnSeparateLines = true,
+        )
+    }
+
     fun `test fill for non primitive types`() {
         doAvailableTest(
             """
@@ -515,7 +537,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = "", age = 0,)
+                User(name = "", age = 0, )
             }
         """,
             withTrailingComma = true,
