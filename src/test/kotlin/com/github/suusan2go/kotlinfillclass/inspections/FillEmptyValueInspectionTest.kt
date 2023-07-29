@@ -10,15 +10,15 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
     fun `test fill class constructor`() {
         doAvailableTest(
             """
-            class User(val name: String, val age: Int)
+            class User(val name: String, val age: Int, val pass: CharSequence)
             fun test() {
                 User(<caret>)
             }
         """,
             """
-            class User(val name: String, val age: Int)
+            class User(val name: String, val age: Int, val pass: CharSequence)
             fun test() {
-                User(name = "", age = 0)
+                User(name = "", age = 0, pass = "")
             }
         """,
         )
