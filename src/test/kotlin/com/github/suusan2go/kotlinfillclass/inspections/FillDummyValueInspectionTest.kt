@@ -118,6 +118,29 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test fill function with lambda argument and trailing comma`() {
+        every { ValueGenerator.randomStringFor("b") } returns "Foo"
+        doAvailableTest(
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1<caret>) {}
+            }
+        """,
+            """
+            fun foo(a: Int, b: String, block: () -> Unit) {}
+            fun main() {
+                foo(1,
+                        b = "Foo",
+                ) {}
+            }
+        """,
+            "Fill function with dummy values",
+            withTrailingComma = true,
+            putArgumentsOnSeparateLines = true,
+        )
+    }
+
     fun `test fill for non primitive types`() {
         every { ValueGenerator.randomStringFor(any()) } answers {
             "Foo${firstArg<String>()}"
@@ -384,7 +407,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = "John Smith", age = 1234,)
+                User(name = "John Smith", age = 1234, )
             }
         """,
             withTrailingComma = true,
