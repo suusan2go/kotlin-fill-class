@@ -14,14 +14,11 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.8.10'
 }
 
-apply plugin: 'org.jetbrains.intellij'
-apply plugin: 'kotlin'
-
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
 intellij {
-    version = '2023.1.4'
+    version = '2023.2'
     plugins = ['Kotlin', 'java']
     pluginName = 'kotlin-fill-class'
     updateSinceUntilBuild = false
@@ -33,14 +30,8 @@ intellij {
     }
 }
 
-repositories {
-    mavenCentral()
-}
-
 group 'com.github.suusan2go.kotlin-fill-class'
 version '1.0.21'
-
-sourceCompatibility = 11
 
 repositories {
     mavenCentral()
