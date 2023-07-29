@@ -328,7 +328,9 @@ open class FillClassFix(
 
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
-            KotlinBuiltIns.isString(type) -> "\"\""
+            KotlinBuiltIns.isCharSequence(type) ||
+                KotlinBuiltIns.isString(type) -> "\"\""
+
             KotlinBuiltIns.isListOrNullableList(type) -> "listOf()"
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"

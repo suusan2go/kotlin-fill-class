@@ -72,7 +72,9 @@ class FillDummyValueFix(
                 KotlinBuiltIns.isLong(type) ||
                 KotlinBuiltIns.isShort(type) -> "${ValueGenerator.randomNumFor(paramName)}"
 
-            KotlinBuiltIns.isString(type) -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+            KotlinBuiltIns.isCharSequence(type) ||
+                KotlinBuiltIns.isString(type) -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+
             else -> super.fillValue(descriptor)
         }
     }

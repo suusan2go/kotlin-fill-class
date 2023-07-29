@@ -24,17 +24,18 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
     fun `test fill class constructor`() {
         every { ValueGenerator.randomStringFor("name") } returns "John Smith"
         every { ValueGenerator.randomNumFor("age") } returns 1234
+        every { ValueGenerator.randomStringFor("pass") } returns "password"
         doAvailableTest(
             """
-            class User(val name: String, val age: Int)
+            class User(val name: String, val age: Int, val pass: CharSequence)
             fun test() {
                 User(<caret>)
             }
         """,
             """
-            class User(val name: String, val age: Int)
+            class User(val name: String, val age: Int, val pass: CharSequence)
             fun test() {
-                User(name = "John Smith", age = 1234)
+                User(name = "John Smith", age = 1234, pass = "password")
             }
         """,
         )
