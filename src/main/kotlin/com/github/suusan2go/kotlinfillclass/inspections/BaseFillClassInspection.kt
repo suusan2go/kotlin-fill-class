@@ -53,6 +53,7 @@ import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
+import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isEnum
 import org.jetbrains.kotlin.utils.ifEmpty
@@ -131,7 +132,7 @@ private fun analyze(call: KtCallElement): List<Pair<KtFunction, FunctionDescript
     val argumentSize = call.valueArguments.size
     return descriptors.filter { (_, descriptor) ->
         descriptor !is JavaCallableMemberDescriptor &&
-            descriptor.valueParameters.filterNot { it.isVararg }.size > argumentSize
+                descriptor.valueParameters.filterNot { it.isVararg }.size > argumentSize
     }
 }
 
@@ -324,8 +325,8 @@ open class FillClassFix(
             KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) ||
-                KotlinBuiltIns.isLong(type) ||
-                KotlinBuiltIns.isShort(type) -> "0"
+                    KotlinBuiltIns.isLong(type) ||
+                    KotlinBuiltIns.isShort(type) -> "0"
 
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
@@ -334,7 +335,7 @@ open class FillClassFix(
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
             type.isFunctionType -> type.lambdaDefaultValue()
-            type.isEnum() -> "${type}.${type.memberScope.getVariableNames().first().identifier}"
+            type.isEnum() -> "${type}.${type.memberScope.getMinMemberName()}"
             type.isMarkedNullable -> "null"
             else -> null
         }
@@ -387,4 +388,9 @@ open class FillClassFix(
         }
         templateBuilder.run(editor, true)
     }
+
+    private fun MemberScope.getMinMemberName() = this.getVariableNames().map { it.identifier }
+        .filter { it.startWithUpperCase() }.minOf { it }
+
+    private fun String.startWithUpperCase() = this.first().isUpperCase()
 }

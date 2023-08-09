@@ -163,7 +163,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
             }
             class Test(emotion: EmotionType)
             fun test() {
-                Test(emotion = EmotionType.HAPPY)
+                Test(emotion = EmotionType.ANGRY)
             }
         """,
         )
