@@ -146,28 +146,45 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test don't add default value for enum,abstract,sealed`() {
+    fun `test add default value for enum`() {
         doAvailableTest(
             """
-            enum class A(val a: String) {
-                Foo("foo"), Bar("bar"), Baz("baz");
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
             }
-            sealed class B(val b: String)
-            abstract class C(val c: String)
-            class Test(a: A, b: B, c: C)
+            class Test(emotion: EmotionType)
             fun test() {
                 Test(<caret>)
             }
         """,
             """
-            enum class A(val a: String) {
-                Foo("foo"), Bar("bar"), Baz("baz");
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
             }
+            class Test(emotion: EmotionType)
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+        )
+    }
+
+    fun `test don't add default value for abstract,sealed`() {
+        doAvailableTest(
+            """
             sealed class B(val b: String)
             abstract class C(val c: String)
-            class Test(a: A, b: B, c: C)
+            class Test(b: B, c: C)
             fun test() {
-                Test(a =, b =, c =)
+                Test(<caret>)
+            }
+        """,
+            """
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(b: B, c: C)
+            fun test() {
+                Test(b =, c =)
             }
         """,
         )

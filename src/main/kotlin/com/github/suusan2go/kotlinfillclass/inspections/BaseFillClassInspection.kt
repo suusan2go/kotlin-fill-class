@@ -54,6 +54,7 @@ import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.typeUtil.isEnum
 import org.jetbrains.kotlin.utils.ifEmpty
 
 abstract class BaseFillClassInspection(
@@ -333,6 +334,7 @@ open class FillClassFix(
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
             type.isFunctionType -> type.lambdaDefaultValue()
+            type.isEnum() -> "${type}.${type.memberScope.getVariableNames().first().identifier}"
             type.isMarkedNullable -> "null"
             else -> null
         }
