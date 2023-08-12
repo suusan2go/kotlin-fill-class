@@ -222,9 +222,71 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
             }
             class Test(emotion: EmotionType)
             fun test() {
-                Test(emotion = EmotionType.ANGRY)
+                Test(emotion = EmotionType.HAPPY)
             }
         """,
+        )
+    }
+
+    fun `test add default value for enum from dependency`() {
+        doAvailableTest(
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(<caret>)
+            }
+        """,
+            """
+            import com.example.EmotionType
+            import com.example.Test
+            
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+            dependencies = listOf("""
+            package com.example
+            
+            class Test(emotion: EmotionType)
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
+            }
+            """.trimIndent())
+        )
+    }
+
+    fun `test add default value for java enum`() {
+
+        val javaDependency = JavaDependency(
+            className = "EmotionType", source = """
+            public enum EmotionType {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
+                public String description;
+                EmotionType(String description) { this.description = description; }
+            }
+        """)
+        doAvailableTest(
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(<caret>)
+            }
+        """,
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+            dependencies = listOf("""
+            package com.example
+            import EmotionType
+            class Test(emotion: EmotionType)
+        """),
+            javaDependencies = listOf(javaDependency)
         )
     }
 
@@ -342,12 +404,13 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test call java constructor`() {
-        val javaDependency = """
+        val javaDependency = JavaDependency(
+            className = "Java", source = """
             public class Java {
                 public Java(String str) {
                 }
             }
-        """
+        """)
         doUnavailableTest(
             """
             fun test() {
@@ -359,7 +422,8 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test call java method`() {
-        val javaDependency = """
+        val javaDependency = JavaDependency(
+            className = "Java", source = """
             public class Java {
                 public Java(String str) {
                 }
@@ -367,7 +431,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 public void foo(Java java) {
                 }
             }
-        """
+        """)
         doUnavailableTest(
             """
             fun test() {
@@ -726,7 +790,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         after: String,
         problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
-        javaDependencies: List<String> = emptyList(),
+        javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
@@ -753,7 +817,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         before: String,
         problemDescription: String = "Fill class constructor",
         dependencies: List<String> = emptyList(),
-        javaDependencies: List<String> = emptyList(),
+        javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultValues: Boolean = false,
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
@@ -778,7 +842,7 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         code: String,
         problemDescription: String = "Fill class constructor",
         dependencies: List<String>,
-        javaDependencies: List<String>,
+        javaDependencies: List<JavaDependency>,
         withoutDefaultValues: Boolean,
         withoutDefaultArguments: Boolean,
         withTrailingComma: Boolean,
@@ -790,8 +854,8 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         dependencies.forEachIndexed { index, dependency ->
             myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
         }
-        javaDependencies.forEachIndexed { index, dependency ->
-            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
+        javaDependencies.forEach { (className, source) ->
+            myFixture.configureByText("$className.java", source.trimIndent())
         }
         myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
@@ -816,4 +880,6 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 caretOffset in it.startOffset..it.endOffset
         }
     }
+
+    data class JavaDependency(val className: String, val source: String)
 }

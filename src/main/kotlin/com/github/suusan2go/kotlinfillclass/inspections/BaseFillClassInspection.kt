@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.idea.inspections.findExistingEditor
 import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.util.textRangeIn
+import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -51,11 +52,13 @@ import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.BindingContext.DECLARATION_TO_DESCRIPTOR
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
-import org.jetbrains.kotlin.resolve.scopes.MemberScope
+import org.jetbrains.kotlin.resolve.scopes.computeAllNames
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isEnum
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 import org.jetbrains.kotlin.utils.ifEmpty
 
 abstract class BaseFillClassInspection(
@@ -132,7 +135,7 @@ private fun analyze(call: KtCallElement): List<Pair<KtFunction, FunctionDescript
     val argumentSize = call.valueArguments.size
     return descriptors.filter { (_, descriptor) ->
         descriptor !is JavaCallableMemberDescriptor &&
-                descriptor.valueParameters.filterNot { it.isVararg }.size > argumentSize
+            descriptor.valueParameters.filterNot { it.isVararg }.size > argumentSize
     }
 }
 
@@ -325,8 +328,8 @@ open class FillClassFix(
             KotlinBuiltIns.isDouble(type) -> "0.0"
             KotlinBuiltIns.isFloat(type) -> "0.0f"
             KotlinBuiltIns.isInt(type) ||
-                    KotlinBuiltIns.isLong(type) ||
-                    KotlinBuiltIns.isShort(type) -> "0"
+                KotlinBuiltIns.isLong(type) ||
+                KotlinBuiltIns.isShort(type) -> "0"
 
             KotlinBuiltIns.isCollectionOrNullableCollection(type) -> "arrayOf()"
             KotlinBuiltIns.isNullableAny(type) -> "null"
@@ -335,7 +338,7 @@ open class FillClassFix(
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
             type.isFunctionType -> type.lambdaDefaultValue()
-            type.isEnum() -> "${type}.${type.memberScope.getMinMemberName()}"
+            type.isEnum() -> type.firstEnumValueOrNull()
             type.isMarkedNullable -> "null"
             else -> null
         }
@@ -356,6 +359,18 @@ open class FillClassFix(
             append(lambdaParameters)
         }
         append("}")
+    }
+
+    private fun KotlinType.firstEnumValueOrNull(): String? {
+        val names = this.memberScope.computeAllNames() ?: return null
+        for (name in names) {
+            val descriptor = this.memberScope.getContributedClassifier(name, NoLookupLocation.FROM_IDE)
+                ?: continue
+            if (descriptor.defaultType.supertypes().contains(this)) {
+                return descriptor.fqNameOrNull()?.asString() ?: continue
+            }
+        }
+        return null
     }
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
@@ -388,9 +403,4 @@ open class FillClassFix(
         }
         templateBuilder.run(editor, true)
     }
-
-    private fun MemberScope.getMinMemberName() = this.getVariableNames().map { it.identifier }
-        .filter { it.startWithUpperCase() }.minOf { it }
-
-    private fun String.startWithUpperCase() = this.first().isUpperCase()
 }
