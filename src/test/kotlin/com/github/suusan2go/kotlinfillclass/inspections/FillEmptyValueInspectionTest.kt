@@ -4,6 +4,7 @@ import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.idea.KotlinFileType
 
 class FillEmptyValueInspectionTest : BasePlatformTestCase() {
@@ -229,6 +230,14 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test add default value for enum from dependency`() {
+        val dependency = """
+            package com.example
+            
+            class Test(emotion: EmotionType)
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
+            }
+        """
         doAvailableTest(
             """
             import com.example.Test
@@ -245,27 +254,27 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Test(emotion = EmotionType.HAPPY)
             }
         """,
-            dependencies = listOf("""
-            package com.example
-            
-            class Test(emotion: EmotionType)
-            enum class EmotionType(val description: String) {
-                HAPPY("happy"), SAD("sad"), ANGRY("angry");
-            }
-            """.trimIndent())
+            dependencies = listOf(dependency),
         )
     }
 
     fun `test add default value for java enum`() {
+        val dependency = """
+            package com.example
+            import EmotionType
+            class Test(emotion: EmotionType)
+        """
 
         val javaDependency = JavaDependency(
-            className = "EmotionType", source = """
-            public enum EmotionType {
-                HAPPY("happy"), SAD("sad"), ANGRY("angry");
-                public String description;
-                EmotionType(String description) { this.description = description; }
-            }
-        """)
+            className = "EmotionType",
+            source = """
+                public enum EmotionType {
+                    HAPPY("happy"), SAD("sad"), ANGRY("angry");
+                    public String description;
+                    EmotionType(String description) { this.description = description; }
+                }
+            """,
+        )
         doAvailableTest(
             """
             import com.example.Test
@@ -281,12 +290,8 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
                 Test(emotion = EmotionType.HAPPY)
             }
         """,
-            dependencies = listOf("""
-            package com.example
-            import EmotionType
-            class Test(emotion: EmotionType)
-        """),
-            javaDependencies = listOf(javaDependency)
+            dependencies = listOf(dependency),
+            javaDependencies = listOf(javaDependency),
         )
     }
 
@@ -405,12 +410,14 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
 
     fun `test call java constructor`() {
         val javaDependency = JavaDependency(
-            className = "Java", source = """
-            public class Java {
-                public Java(String str) {
+            className = "Java",
+            source = """
+                public class Java {
+                    public Java(String str) {
+                    }
                 }
-            }
-        """)
+            """,
+        )
         doUnavailableTest(
             """
             fun test() {
@@ -423,15 +430,17 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
 
     fun `test call java method`() {
         val javaDependency = JavaDependency(
-            className = "Java", source = """
-            public class Java {
-                public Java(String str) {
+            className = "Java",
+            source = """
+                public class Java {
+                    public Java(String str) {
+                    }
+                
+                    public void foo(Java java) {
+                    }
                 }
-            
-                public void foo(Java java) {
-                }
-            }
-        """)
+            """,
+        )
         doUnavailableTest(
             """
             fun test() {
@@ -881,5 +890,5 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         }
     }
 
-    data class JavaDependency(val className: String, val source: String)
+    data class JavaDependency(val className: String, @Language("java") val source: String)
 }
