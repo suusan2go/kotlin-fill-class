@@ -7,6 +7,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.idea.KotlinFileType
 
 class FillDummyValueInspectionTest : BasePlatformTestCase() {
@@ -170,28 +171,111 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
-    fun `test don't add default value for enum,abstract,sealed`() {
+    fun `test add default value for enum`() {
         doAvailableTest(
             """
-            enum class A(val a: String) {
-                Foo("foo"), Bar("bar"), Baz("baz");
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
             }
-            sealed class B(val b: String)
-            abstract class C(val c: String)
-            class Test(a: A, b: B, c: C)
+            class Test(emotion: EmotionType)
             fun test() {
                 Test(<caret>)
             }
         """,
             """
-            enum class A(val a: String) {
-                Foo("foo"), Bar("bar"), Baz("baz");
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
             }
+            class Test(emotion: EmotionType)
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+        )
+    }
+
+    fun `test add default value for enum from dependency`() {
+        val dependency = """
+            package com.example
+            
+            class Test(emotion: EmotionType)
+            enum class EmotionType(val description: String) {
+                HAPPY("happy"), SAD("sad"), ANGRY("angry");
+            }
+        """
+        doAvailableTest(
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(<caret>)
+            }
+        """,
+            """
+            import com.example.EmotionType
+            import com.example.Test
+            
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+            dependencies = listOf(dependency),
+        )
+    }
+
+    fun `test add default value for java enum`() {
+        val dependency = """
+            package com.example
+            import EmotionType
+            class Test(emotion: EmotionType)
+        """
+
+        val javaDependency = JavaDependency(
+            className = "EmotionType",
+            source = """
+                public enum EmotionType {
+                    HAPPY("happy"), SAD("sad"), ANGRY("angry");
+                    public String description;
+                    EmotionType(String description) { this.description = description; }
+                }
+            """,
+        )
+        doAvailableTest(
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(<caret>)
+            }
+        """,
+            """
+            import com.example.Test
+            
+            fun test() {
+                Test(emotion = EmotionType.HAPPY)
+            }
+        """,
+            dependencies = listOf(dependency),
+            javaDependencies = listOf(javaDependency),
+        )
+    }
+
+    fun `test don't add default value for abstract,sealed`() {
+        doAvailableTest(
+            """
             sealed class B(val b: String)
             abstract class C(val c: String)
-            class Test(a: A, b: B, c: C)
+            class Test(b: B, c: C)
             fun test() {
-                Test(a =, b =, c =)
+                Test(<caret>)
+            }
+        """,
+            """
+            sealed class B(val b: String)
+            abstract class C(val c: String)
+            class Test(b: B, c: C)
+            fun test() {
+                Test(b =, c =)
             }
         """,
         )
@@ -221,12 +305,15 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test call java constructor`() {
-        val javaDependency = """
-            public class Java {
-                public Java(String str) {
+        val javaDependency = JavaDependency(
+            className = "Java",
+            source = """ 
+                public class Java {
+                    public Java(String str) {
+                    }
                 }
-            }
-        """
+            """,
+        )
         doUnavailableTest(
             """
             fun test() {
@@ -238,15 +325,18 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
     }
 
     fun `test call java method`() {
-        val javaDependency = """
-            public class Java {
-                public Java(String str) {
+        val javaDependency = JavaDependency(
+            className = "Java",
+            source = """
+                public class Java {
+                    public Java(String str) {
+                    }
+                
+                    public void foo(Java java) {
+                    }
                 }
-            
-                public void foo(Java java) {
-                }
-            }
-        """
+            """,
+        )
         doUnavailableTest(
             """
             fun test() {
@@ -576,7 +666,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         after: String,
         problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String> = emptyList(),
-        javaDependencies: List<String> = emptyList(),
+        javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
@@ -601,7 +691,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         before: String,
         problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String> = emptyList(),
-        javaDependencies: List<String> = emptyList(),
+        javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultArguments: Boolean = false,
         withTrailingComma: Boolean = false,
         putArgumentsOnSeparateLines: Boolean = false,
@@ -624,7 +714,7 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         code: String,
         problemDescription: String = "Fill class constructor with dummy values",
         dependencies: List<String>,
-        javaDependencies: List<String>,
+        javaDependencies: List<JavaDependency>,
         withoutDefaultArguments: Boolean,
         withTrailingComma: Boolean,
         putArgumentsOnSeparateLines: Boolean,
@@ -635,8 +725,8 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
         dependencies.forEachIndexed { index, dependency ->
             myFixture.configureByText("dependency$index.kt", dependency.trimIndent())
         }
-        javaDependencies.forEachIndexed { index, dependency ->
-            myFixture.configureByText("dependency$index.java", dependency.trimIndent())
+        javaDependencies.forEach { (className, source) ->
+            myFixture.configureByText("$className.java", source.trimIndent())
         }
         myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
 
@@ -660,4 +750,6 @@ class FillDummyValueInspectionTest : BasePlatformTestCase() {
                 caretOffset in it.startOffset..it.endOffset
         }
     }
+
+    data class JavaDependency(val className: String, @Language("java") val source: String)
 }

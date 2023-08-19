@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.idea.intentions.callExpression
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.idea.search.usagesSearch.descriptor
 import org.jetbrains.kotlin.idea.util.textRangeIn
+import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -50,9 +51,13 @@ import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComme
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyClassDescriptor
+import org.jetbrains.kotlin.resolve.scopes.computeAllNames
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.typeUtil.isEnum
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 import org.jetbrains.kotlin.utils.ifEmpty
 
 abstract class BaseFillClassInspection(
@@ -333,6 +338,7 @@ open class FillClassFix(
             KotlinBuiltIns.isSetOrNullableSet(type) -> "setOf()"
             KotlinBuiltIns.isMapOrNullableMap(type) -> "mapOf()"
             type.isFunctionType -> type.lambdaDefaultValue()
+            type.isEnum() -> type.firstEnumValueOrNull()
             type.isMarkedNullable -> "null"
             else -> null
         }
@@ -353,6 +359,18 @@ open class FillClassFix(
             append(lambdaParameters)
         }
         append("}")
+    }
+
+    private fun KotlinType.firstEnumValueOrNull(): String? {
+        val names = this.memberScope.computeAllNames() ?: return null
+        for (name in names) {
+            val descriptor = this.memberScope.getContributedClassifier(name, NoLookupLocation.FROM_IDE)
+                ?: continue
+            if (descriptor.defaultType.supertypes().contains(this)) {
+                return descriptor.fqNameOrNull()?.asString() ?: continue
+            }
+        }
+        return null
     }
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
