@@ -532,6 +532,26 @@ class FillEmptyValueInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun `test don't keep two or more line breaks`() {
+        doAvailableTest(
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(
+                    <caret>
+                )
+            }
+        """,
+            """
+            class User(val name: String, val age: Int = 0)
+            fun test() {
+                User(name = "", age = 0
+                )
+            }
+        """,
+        )
+    }
+
     fun `test fill class constructor without default values`() {
         doAvailableTest(
             """

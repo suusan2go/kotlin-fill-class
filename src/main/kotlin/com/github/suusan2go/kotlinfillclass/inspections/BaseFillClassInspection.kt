@@ -15,6 +15,10 @@ import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.isFunctionType
 import org.jetbrains.kotlin.descriptors.ClassConstructorDescriptor
@@ -36,6 +40,7 @@ import org.jetbrains.kotlin.idea.util.textRangeIn
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.load.java.descriptors.JavaCallableMemberDescriptor
+import org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtElement
@@ -43,6 +48,7 @@ import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtLambdaArgument
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
@@ -225,6 +231,17 @@ open class FillClassFix(
     ) {
         val argumentSize = arguments.size
         val factory = KtPsiFactory(this.project)
+
+        // pre-fill process
+
+        // 1. Remove unnecessary line breaks (ref #123)
+        // If there are more than one line breaks before right parenthesis, replace to one line break.
+        val psiWhiteSpace = (this.lastChild as? LeafPsiElement)?.prevSibling as? PsiWhiteSpace
+        if (psiWhiteSpace != null && psiWhiteSpace.text.count { it == '\n' } > 1) {
+            psiWhiteSpace.replace(factory.createWhiteSpace("\n"))
+        }
+
+        // fill process
         fillArguments(factory, parameters, editor, lambdaArgument)
 
         // post-fill process
@@ -386,8 +403,7 @@ open class FillClassFix(
         }
     }
 
-    private fun KtValueArgumentList.hasTrailingComma() =
-        rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
+    private fun KtValueArgumentList.hasTrailingComma() = trailingComma != null
 
     private fun KtValueArgumentList.startToReplaceArguments(startIndex: Int, editor: Editor) {
         val templateBuilder = TemplateBuilderImpl(this)
