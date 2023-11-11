@@ -36,6 +36,14 @@
                          language="kotlin"
                          displayName="Fill with dummy values" />
 
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillSameValuesInspection"
+                         groupPath="Kotlin"
+                         groupName="Fill class"
+                         enabledByDefault="true"
+                         level="INFORMATION"
+                         language="kotlin"
+                         displayName="Fill with same values" />
+
         <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillEmptyValuesInspection"
                          groupPath="Kotlin"
                          groupName="Fill class"
