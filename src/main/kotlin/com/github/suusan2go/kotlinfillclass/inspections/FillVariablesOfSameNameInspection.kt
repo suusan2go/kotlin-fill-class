@@ -2,18 +2,17 @@ package com.github.suusan2go.kotlinfillclass.inspections
 
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import javax.swing.JComponent
 
-class FillSameValuesInspection : BaseFillClassInspection(withoutDefaultValues = false) {
+class FillVariablesOfSameNameInspection : BaseFillClassInspection(withoutDefaultValues = false) {
 
     override fun getConstructorPromptTitle(): String {
-        return "Fill class constructor with same name values"
+        return "Fill class constructor with variables of the same name"
     }
 
     override fun getFunctionPromptTitle(): String {
-        return "Fill function with same name values"
+        return "Fill class constructor with variables of the same name"
     }
 
     override fun createOptionsPanel(): JComponent {
@@ -61,7 +60,7 @@ class FillSameValueFix(
     putArgumentsOnSeparateLines,
     movePointerToEveryArgument,
 ) {
-    override fun fillValue(descriptor: ValueParameterDescriptor): String? {
+    override fun fillValue(descriptor: ValueParameterDescriptor): String {
         return descriptor.name.asString()
     }
 }

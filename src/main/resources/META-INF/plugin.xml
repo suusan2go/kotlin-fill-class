@@ -36,13 +36,13 @@
                          language="kotlin"
                          displayName="Fill with dummy values" />
 
-        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillSameValuesInspection"
+        <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillVariablesOfSameNameInspection"
                          groupPath="Kotlin"
                          groupName="Fill class"
                          enabledByDefault="true"
                          level="INFORMATION"
                          language="kotlin"
-                         displayName="Fill with same values" />
+                         displayName="Fill class constructor with variables of the same name" />
 
         <localInspection implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillEmptyValuesInspection"
                          groupPath="Kotlin"
