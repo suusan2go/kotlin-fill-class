@@ -10,13 +10,14 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>1.0.22</h2>
+      <h2>1.0.23</h2>
       <ul>
-        <li>Use primary constructor to fill non-primitive value</li>
-        <li>Preview put argument on separate lines correctly</li>
-        <li>Fill CharSequence param as String</li>
-        <li>Fixed fill function / constructor of external library</li>
-        <li>Fixed trailing comma with trailing lambda</li>
+        <li>
+          Add "Fill class constructor with variables of the same name" inspection
+          <ul>
+            <li>This is useful to convert classes from data layer to domain layer</li>
+          </ul>
+        </li>
       </ul>
     ]]>
     </change-notes>
