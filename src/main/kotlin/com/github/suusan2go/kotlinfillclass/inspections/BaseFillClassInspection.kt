@@ -1,5 +1,6 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.intellij.codeInsight.template.TemplateBuilderImpl
 import com.intellij.codeInspection.LocalQuickFix
@@ -71,6 +72,7 @@ abstract class BaseFillClassInspection(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
     ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
+        if (K2SupportHelper.isK2PluginEnabled()) return
         val callElement = element.parent as? KtCallElement ?: return
         val descriptors = analyze(callElement).ifEmpty { return }
         val description = if (descriptors.any { descriptor -> descriptor is ClassConstructorDescriptor }) {

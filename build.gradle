@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlinVersion = '1.8.10'
+    ext.kotlinVersion = '2.0.0'
     repositories {
         mavenCentral()
     }
@@ -10,15 +10,15 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.15.0'
-    id 'org.jetbrains.kotlin.jvm' version '1.8.10'
+    id 'org.jetbrains.intellij' version '1.17.3'
+    id 'org.jetbrains.kotlin.jvm' version '2.0.0'
 }
 
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
 intellij {
-    version = '2023.1.4'
+    version = '2024.1.1'
     plugins = ['Kotlin', 'java']
     pluginName = 'kotlin-fill-class'
     updateSinceUntilBuild = false
@@ -26,7 +26,7 @@ intellij {
         token = System.getenv('TOKEN')
     }
     patchPluginXml {
-        sinceBuild = '221.5080.210'
+        sinceBuild = '241.14494.240'
     }
 }
 
@@ -35,6 +35,7 @@ version '1.0.23'
 
 repositories {
     mavenCentral()
+    maven { url 'https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies' }
 }
 
 configurations {
@@ -43,6 +44,15 @@ configurations {
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    compileOnly 'org.jetbrains.kotlin:high-level-api-for-ide:2.0.0-ij241-276', {
+        exclude group: 'org.jetbrains.kotlin', module: 'analysis-api'
+    }
+    compileOnly 'org.jetbrains.kotlin:high-level-api-fir-for-ide:2.0.0-ij241-276', {
+        exclude group: 'org.jetbrains.kotlin', module: 'analysis-api-fir'
+    }
+    compileOnly 'org.jetbrains.kotlin:high-level-api-fe10-for-ide:2.0.0-ij241-276', {
+        exclude group: 'org.jetbrains.kotlin', module: 'analysis-api-fe10'
+    }
 
     // Lorem : An extremely useful Lorem Ipsum generator for Java!
     implementation 'com.thedeanda:lorem:2.1'
@@ -84,3 +94,17 @@ task ktlintFormat(type: JavaExec, group: "formatting") {
     args "-F", "src/**/*.kt"
 }
 
+tasks {
+    runIde {
+        systemProperty("idea.kotlin.plugin.use.k2", true)
+    }
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-receivers")
+    }
+    compilerOptions {
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+    }
+}
