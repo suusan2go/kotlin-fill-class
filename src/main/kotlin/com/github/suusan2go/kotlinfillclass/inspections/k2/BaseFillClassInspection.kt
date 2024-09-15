@@ -39,6 +39,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KtSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KtValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KtFunctionalType
 import org.jetbrains.kotlin.analysis.api.types.KtNonErrorClassType
+import org.jetbrains.kotlin.idea.base.codeInsight.KotlinNameSuggester
 import org.jetbrains.kotlin.idea.base.codeInsight.handlers.fixers.range
 import org.jetbrains.kotlin.idea.base.psi.kotlinFqName
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.AbstractKotlinApplicableInspectionWithContext
@@ -46,9 +47,8 @@ import org.jetbrains.kotlin.idea.codeinsight.api.applicators.KotlinApplicability
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.applicabilityRanges
 import org.jetbrains.kotlin.idea.codeinsight.utils.isEnum
 import org.jetbrains.kotlin.idea.codeinsight.utils.isNullableAnyType
-import org.jetbrains.kotlin.idea.core.ShortenReferences
+import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.idea.util.textRangeIn
-import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtCallElement
@@ -58,10 +58,8 @@ import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLambdaArgument
-import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
@@ -69,10 +67,6 @@ import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
-import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
-import org.jetbrains.kotlin.resolve.scopes.computeAllNames
-import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.typeUtil.supertypes
 import javax.swing.JComponent
 
 @Suppress("UnstableApiUsage")
@@ -380,12 +374,7 @@ abstract class BaseFillClassInspection(
             type.classId in listOf(StandardClassIds.Set, StandardClassIds.MutableSet) -> "setOf()"
             type.classId in listOf(StandardClassIds.Map, StandardClassIds.MutableMap) -> "mapOf()"
             type.isFunctionType -> type.lambdaDefaultValue()
-            type.isEnum() ->
-                // Kotlin Enum
-                (type.classSymbol.psi as? KtClass)?.declarations?.firstOrNull()?.kotlinFqName?.asString()
-                    // Java Enum
-                    ?: type.classSymbol.psi?.getChildrenOfType<PsiEnumConstant>()?.firstOrNull()?.kotlinFqName?.asString()
-
+            type.isEnum() -> type.firstEnumValueOrNull()
             type.isMarkedNullable -> "null"
             else -> null
         }
@@ -393,32 +382,26 @@ abstract class BaseFillClassInspection(
 
     context(KtAnalysisSession) private fun KtNonErrorClassType.lambdaDefaultValue(): String = buildString {
         append("{")
-        // TODO: not implemented yet
-//        if (arguments.size > 2) {
-//            val validator = CollectingNameValidator()
-//            val lambdaParameters = arguments.dropLast(1).joinToString(postfix = "->") {
-//                val type = it.type
-//                val name = KotlinNameSuggester.suggestNamesByType(type, validator, "param")[0]
-//                validator.addName(name)
-//                val typeText = type.constructor.declarationDescriptor?.importableFqName?.asString() ?: type.toString()
-//                val nullable = if (type.isMarkedNullable) "?" else ""
-//                "$name: $typeText$nullable"
-//            }
-//            append(lambdaParameters)
-//        }
+        if (ownTypeArguments.size > 2) {
+            val validator = CollectingNameValidator()
+            val lambdaParameters = ownTypeArguments.dropLast(1).joinToString(postfix = "->") {
+                val type = it.type ?: return@joinToString ""
+                val suggester = KotlinNameSuggester()
+                val name = KotlinNameSuggester.suggestNameByName(suggester.suggestTypeNames(type).first(), validator)
+                validator.addName(name)
+                val typeText = (type as? KtNonErrorClassType)?.let { it.classId.asFqNameString() }
+                val nullable = if (type.isMarkedNullable) "?" else ""
+                "$name: $typeText$nullable"
+            }
+            append(lambdaParameters)
+        }
         append("}")
     }
 
-    private fun KotlinType.firstEnumValueOrNull(): String? {
-        val names = this.memberScope.computeAllNames() ?: return null
-        for (name in names) {
-            val descriptor = this.memberScope.getContributedClassifier(name, NoLookupLocation.FROM_IDE)
-                ?: continue
-            if (descriptor.defaultType.supertypes().contains(this)) {
-                return descriptor.fqNameOrNull()?.asString() ?: continue
-            }
-        }
-        return null
+    private fun KtNonErrorClassType.firstEnumValueOrNull(): String? {
+        val psi = classSymbol.psi ?: return null
+        return (psi as? KtClass)?.declarations?.firstOrNull()?.kotlinFqName?.asString() // Kotlin Enum
+            ?: psi.getChildrenOfType<PsiEnumConstant>().firstOrNull()?.kotlinFqName?.asString() // Java Enum
     }
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
