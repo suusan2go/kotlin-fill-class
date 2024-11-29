@@ -31,6 +31,6 @@
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
-        <supportsKotlinK2Mode/>
+        <supportsKotlinPluginMode supportsK2="true" />
     </extensions>
 </idea-plugin>

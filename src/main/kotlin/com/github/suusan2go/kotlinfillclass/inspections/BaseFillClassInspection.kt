@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package com.github.suusan2go.kotlinfillclass.inspections
 
 import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
