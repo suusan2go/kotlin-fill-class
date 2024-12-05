@@ -1,5 +1,6 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
@@ -15,7 +16,8 @@ class FillVariablesOfSameNameInspection : BaseFillClassInspection(withoutDefault
         return "Fill class constructor with variables of the same name"
     }
 
-    override fun createOptionsPanel(): JComponent {
+    override fun createOptionsPanel(): JComponent? {
+        if (K2SupportHelper.isK2PluginEnabled()) return null
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
         panel.addCheckbox(LABEL_WITH_TRAILING_COMMA, "withTrailingComma")

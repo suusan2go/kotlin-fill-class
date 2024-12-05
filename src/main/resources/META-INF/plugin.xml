@@ -33,4 +33,8 @@
     <!--<xi:include href="k2.xml" includeIf="idea.kotlin.plugin.use.k2"/>-->
     <xi:include href="k1.xml"/>
     <xi:include href="k2.xml"/>
+
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <supportsKotlinPluginMode supportsK2="true" />
+    </extensions>
 </idea-plugin>

@@ -1,15 +1,13 @@
 package com.github.suusan2go.kotlinfillclass.inspections.k2
 
+import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT
 import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES
 import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITHOUT_DEFAULT_ARGUMENTS
 import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITHOUT_DEFAULT_VALUES
 import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITH_TRAILING_COMMA
-import com.intellij.codeInspection.ProblemDescriptorBase
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.codeInspection.ex.ProblemDescriptorImpl
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
@@ -24,55 +22,39 @@ import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiEnumConstant
 import com.intellij.psi.util.PsiEditorUtil
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.calls.KtErrorCallInfo
-import org.jetbrains.kotlin.analysis.api.calls.KtSimpleFunctionCall
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.resolution.KaErrorCallInfo
 import org.jetbrains.kotlin.analysis.api.resolution.KaSimpleFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
-import org.jetbrains.kotlin.analysis.api.signatures.KtVariableLikeSignature
+import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtConstructorSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtSymbolOrigin
-import org.jetbrains.kotlin.analysis.api.symbols.KtValueParameterSymbol
-import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KtFunctionalType
-import org.jetbrains.kotlin.analysis.api.types.KtNonErrorClassType
 import org.jetbrains.kotlin.analysis.api.types.symbol
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.idea.base.codeInsight.KotlinNameSuggester
-import org.jetbrains.kotlin.idea.base.codeInsight.handlers.fixers.range
-import org.jetbrains.kotlin.idea.base.psi.kotlinFqName
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinModCommandQuickFix
 import org.jetbrains.kotlin.idea.codeinsight.api.applicators.ApplicabilityRange
 import org.jetbrains.kotlin.idea.codeinsight.utils.isEnum
-import org.jetbrains.kotlin.idea.codeinsight.utils.isNullableAnyType
-import org.jetbrains.kotlin.idea.core.CollectingNameValidator
 import org.jetbrains.kotlin.lexer.KtTokens
-import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.KtCallElement
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLambdaArgument
+import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
-import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespaceAndComments
 import org.jetbrains.kotlin.psi.valueArgumentListVisitor
 import javax.swing.JComponent
@@ -104,7 +86,8 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    override fun createOptionsPanel(): JComponent {
+    override fun createOptionsPanel(): JComponent? {
+        if (!K2SupportHelper.isK2PluginEnabled()) return null
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_VALUES, "withoutDefaultValues")
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
@@ -127,6 +110,7 @@ abstract class BaseFillClassInspection(
         ApplicabilityRange.self(element)
 
     context(KaSession) override fun prepareContext(element: KtValueArgumentList): Context? {
+        if (!K2SupportHelper.isK2PluginEnabled()) return null
         val callExpression = element.parent as? KtCallExpression ?: return null
         return callExpression.findCandidates().takeIf { it.isNotEmpty() }?.let {
             Context(
@@ -137,26 +121,29 @@ abstract class BaseFillClassInspection(
                             prefix = "(",
                             postfix = ")",
                             separator = ", ",
-                            transform = { sig -> "${sig.name.identifier}: ${sig.returnType.asStringForDebugging()}" },
+                            transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
                         ))
                 },
-                isConstructor = it[0].symbol is KtConstructorSymbol
+                isConstructor = it[0].symbol is KaConstructorSymbol
             )
         }
     }
 
-    context(KaSession) private fun KtCallElement.findCandidates(): List<KtSimpleFunctionCall> {
+    context(KaSession) private fun KtCallElement.findCandidates(): List<KaSimpleFunctionCall> {
+        return findCandidates(valueArguments.size)
+    }
+
+    context(KaSession) private fun KtElement.findCandidates(argumentSize: Int): List<KaSimpleFunctionCall> {
         val resolvedCall = resolveToCall()
-        val argumentSize = valueArguments.size
         if (resolvedCall is KaErrorCallInfo) {
             val candidates = resolvedCall.candidateCalls
-                .mapNotNull { it as? KtSimpleFunctionCall }
+                .mapNotNull { it as? KaSimpleFunctionCall }
                 .filter { ktCall ->
                     ktCall.symbol.origin !in listOf(
-                        KtSymbolOrigin.JAVA_SOURCE,
-                        KtSymbolOrigin.JAVA_LIBRARY,
-                        KtSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
-                        KtSymbolOrigin.JS_DYNAMIC
+                        KaSymbolOrigin.JAVA_SOURCE,
+                        KaSymbolOrigin.JAVA_LIBRARY,
+                        KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
+                        KaSymbolOrigin.JS_DYNAMIC
                     ) && ktCall.partiallyAppliedSymbol.signature.valueParameters.filterNot { it.symbol.isVararg }.size > argumentSize
                 }
             return candidates
@@ -172,7 +159,11 @@ abstract class BaseFillClassInspection(
         element: KtValueArgumentList,
         context: Context
     ) = object: KotlinModCommandQuickFix<KtValueArgumentList>() {
-        override fun getFamilyName() = "Fill Class"
+        override fun getFamilyName() = if (context.isConstructor) {
+            getConstructorPromptDescription()
+        } else {
+            getFunctionPromptDescription()
+        }
 
         override fun applyFix(project: Project, element: KtValueArgumentList, updater: ModPsiUpdater) {
             val call = element.parent as? KtCallElement ?: return
@@ -242,7 +233,7 @@ abstract class BaseFillClassInspection(
 
     context(KaSession) private fun KtValueArgumentList.fillArgumentsAndFormat(
         ktCall: KaSimpleFunctionCall,
-        updater: ModPsiUpdater,
+        updater: ModPsiUpdater?,
         lambdaArgument: KtLambdaArgument?,
     ) {
         fillArgumentsAndFormat(ktCall.partiallyAppliedSymbol.signature.valueParameters, updater, lambdaArgument)
@@ -250,7 +241,7 @@ abstract class BaseFillClassInspection(
 
     context(KaSession) private fun KtValueArgumentList.fillArgumentsAndFormat(
         parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
-        updater: ModPsiUpdater,
+        updater: ModPsiUpdater?,
         lambdaArgument: KtLambdaArgument? = null,
     ) {
         val document = containingFile.viewProvider.document
@@ -286,7 +277,7 @@ abstract class BaseFillClassInspection(
 
         // 3. Set argument placeholders
         // This should be run on final state
-        if (!isPreviewSession() && movePointerToEveryArgument) {
+        if (!isPreviewSession() && movePointerToEveryArgument && updater != null) {
             PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
             startToReplaceArguments(argumentSize, updater)
         }
@@ -329,83 +320,24 @@ abstract class BaseFillClassInspection(
             return factory.createArgument(null, parameter.name)
         }
         val fqName = returnType.symbol?.classId?.asFqNameString()
-
-        // TODO: implement
-        return factory.createArgument(null, parameter.name)
-//
-//        val fqName = descriptor?.importableFqName?.asString()
-//        val valueParameters = descriptor?.constructors
-//            ?.sortedByDescending { it.isPrimary } // primary constructor first
-//            ?.firstOrNull { it is ClassConstructorDescriptor }
-//            ?.valueParameters
-//        val argumentExpression = if (fqName != null && valueParameters != null) {
-//            (factory.createExpression("$fqName()")).also {
-//                val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
-//                callExpression?.valueArgumentList?.fillArguments(factory, valueParameters, updater)
+            ?: return factory.createArgument(null, parameter.name)
+        var argumentExpression: KtExpression? = null
+        if (returnType.symbol?.psi is KtObjectDeclaration) {
+            argumentExpression = factory.createExpression(fqName)
+        } else {
+            // TODO: Fill constructor
+//            argumentExpression = factory.createExpression("${fqName}()").apply {
+//                val resolvedCall = findCandidates(0).firstOrNull()
+//                if (resolvedCall != null) {
+//                    findDescendantOfType<KtValueArgumentList> { true }?.fillArgumentsAndFormat(resolvedCall, null, null)
+//                }
 //            }
-//        } else {
-//            null
-//        }
-//        return factory.createArgument(argumentExpression, parameter.name)
-    }
-
-    context(KaSession) protected open fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String? {
-        val type = signature.returnType
-        if (type !is KtNonErrorClassType) {
-            return null
+            argumentExpression = factory.createExpression("${fqName}()")
         }
-        return when {
-            type.isBooleanType -> "false"
-            type.isCharType -> "''"
-            type.isDoubleType -> "0.0"
-            type.isFloatType -> "0.0f"
-            type.isIntType ||
-                type.isLongType ||
-                type.isShortType -> "0"
-
-            type.isArrayOrPrimitiveArray -> "arrayOf()"
-            type.isNullableAnyType() -> "null"
-            type.isCharSequenceType ||
-                type.isStringType -> "\"\""
-
-            type.classId in listOf(
-                StandardClassIds.List,
-                StandardClassIds.MutableList,
-                StandardClassIds.Collection
-            ) -> "listOf()"
-
-            type.classId in listOf(StandardClassIds.Set, StandardClassIds.MutableSet) -> "setOf()"
-            type.classId in listOf(StandardClassIds.Map, StandardClassIds.MutableMap) -> "mapOf()"
-            type.isFunctionType -> type.lambdaDefaultValue()
-            type.isEnum() -> type.firstEnumValueOrNull()
-            type.isMarkedNullable -> "null"
-            else -> null
-        }
+        return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    context(KaSession) private fun KaClassType.lambdaDefaultValue(): String = buildString {
-        append("{")
-        if (typeArguments.size > 2) {
-            val validator = CollectingNameValidator()
-            val lambdaParameters = typeArguments.dropLast(1).joinToString(postfix = "->") {
-                val type = it.type ?: return@joinToString ""
-                val suggester = KotlinNameSuggester()
-                val name = KotlinNameSuggester.suggestNameByName(suggester.suggestTypeNames(type).first(), validator)
-                validator.addName(name)
-                val typeText = (type as? KaClassType)?.classId?.asFqNameString()
-                val nullable = if (type.isMarkedNullable) "?" else ""
-                "$name: $typeText$nullable"
-            }
-            append(lambdaParameters)
-        }
-        append("}")
-    }
-
-    private fun KaClassType.firstEnumValueOrNull(): String? {
-        val psi = symbol.psi ?: return null
-        return (psi as? KtClass)?.declarations?.firstOrNull()?.kotlinFqName?.asString() // Kotlin Enum
-            ?: psi.getChildrenOfType<PsiEnumConstant>().firstOrNull()?.kotlinFqName?.asString() // Java Enum
-    }
+    context(KaSession) protected abstract fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String?
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
         return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->

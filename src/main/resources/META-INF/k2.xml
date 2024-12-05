@@ -1,23 +1,25 @@
 <idea-plugin>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!--        <localInspection-->
-        <!--                implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillDummyValuesInspection"-->
-        <!--                groupPath="Kotlin"-->
-        <!--                groupName="Fill class"-->
-        <!--                enabledByDefault="true"-->
-        <!--                level="INFORMATION"-->
-        <!--                language="kotlin"-->
-        <!--                displayName="Fill with dummy values"/>-->
+        <localInspection
+                implementationClass="com.github.suusan2go.kotlinfillclass.inspections.k2.FillDummyValuesInspection"
+                groupPath="Kotlin"
+                groupName="Fill class"
+                enabledByDefault="true"
+                level="INFORMATION"
+                language="kotlin"
+                displayName="Fill with dummy values (K2)"
+                shortName="FillDummyValuesK2"/>
 
-        <!--        <localInspection-->
-        <!--                implementationClass="com.github.suusan2go.kotlinfillclass.inspections.FillVariablesOfSameNameInspection"-->
-        <!--                groupPath="Kotlin"-->
-        <!--                groupName="Fill class"-->
-        <!--                enabledByDefault="true"-->
-        <!--                level="INFORMATION"-->
-        <!--                language="kotlin"-->
-        <!--                displayName="Fill class constructor with variables of the same name"/>-->
+        <localInspection
+                implementationClass="com.github.suusan2go.kotlinfillclass.inspections.k2.FillVariablesOfSameNameInspection"
+                groupPath="Kotlin"
+                groupName="Fill class"
+                enabledByDefault="true"
+                level="INFORMATION"
+                language="kotlin"
+                displayName="Fill class constructor with variables of the same name (K2)"
+                shortName="FillVariablesOfSameNameK2"/>
 
         <localInspection
                 implementationClass="com.github.suusan2go.kotlinfillclass.inspections.k2.FillEmptyValuesInspection"
@@ -28,9 +30,5 @@
                 language="kotlin"
                 displayName="Fill with empty values (K2)"
                 shortName="FillEmptyValuesK2"/>
-    </extensions>
-
-    <extensions defaultExtensionNs="org.jetbrains.kotlin">
-        <supportsKotlinPluginMode supportsK2="true" />
     </extensions>
 </idea-plugin>
