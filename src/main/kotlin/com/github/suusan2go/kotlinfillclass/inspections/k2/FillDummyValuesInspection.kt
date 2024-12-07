@@ -6,13 +6,13 @@ import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 
-
 class FillDummyValuesInspection : FillEmptyValuesInspection() {
     override fun getConstructorPromptDescription(): String = "Fill class constructor with dummy values"
 
     override fun getFunctionPromptDescription(): String = "Fill function with dummy values"
 
-    context(KaSession) override fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String? {
+    context(KaSession)
+    override fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String? {
         val type = signature.returnType
         val paramName = signature.name.asString()
         if (type !is KaClassType) {
@@ -23,10 +23,10 @@ class FillDummyValuesInspection : FillEmptyValuesInspection() {
             type.isDoubleType -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
             type.isFloatType -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
             type.isIntType ||
-                    type.isLongType ||
-                    type.isShortType -> "${ValueGenerator.randomNumFor(paramName)}"
+                type.isLongType ||
+                type.isShortType -> "${ValueGenerator.randomNumFor(paramName)}"
             type.isCharSequenceType ||
-                    type.isStringType -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+                type.isStringType -> "\"${ValueGenerator.randomStringFor(paramName)}\""
             else -> super.fillValue(signature)
         }
     }

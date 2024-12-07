@@ -7,7 +7,6 @@ import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import javax.swing.JComponent
 
 class FillVariablesOfSameNameInspection : BaseFillClassInspection(withoutDefaultValues = false) {
-
     override fun getConstructorPromptTitle(): String {
         return "Fill class constructor with variables of the same name"
     }
@@ -55,13 +54,13 @@ class FillSameValueFix(
     putArgumentsOnSeparateLines: Boolean,
     movePointerToEveryArgument: Boolean,
 ) : FillClassFix(
-    description,
-    withoutDefaultValues,
-    withoutDefaultArguments,
-    withTrailingComma,
-    putArgumentsOnSeparateLines,
-    movePointerToEveryArgument,
-) {
+        description,
+        withoutDefaultValues,
+        withoutDefaultArguments,
+        withTrailingComma,
+        putArgumentsOnSeparateLines,
+        movePointerToEveryArgument,
+    ) {
     override fun fillValue(descriptor: ValueParameterDescriptor): String {
         return descriptor.name.asString()
     }

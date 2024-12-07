@@ -6,7 +6,6 @@ import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import javax.swing.JComponent
 
 class FillEmptyValuesInspection : BaseFillClassInspection() {
-
     override fun getConstructorPromptTitle(): String {
         return "Fill class constructor"
     }

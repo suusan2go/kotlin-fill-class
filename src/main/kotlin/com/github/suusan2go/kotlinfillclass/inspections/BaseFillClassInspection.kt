@@ -73,27 +73,32 @@ abstract class BaseFillClassInspection(
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
-    ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
-        if (K2SupportHelper.isK2PluginEnabled()) return
-        val callElement = element.parent as? KtCallElement ?: return
-        val descriptors = analyze(callElement).ifEmpty { return }
-        val description = if (descriptors.any { descriptor -> descriptor is ClassConstructorDescriptor }) {
-            getConstructorPromptTitle()
-        } else {
-            getFunctionPromptTitle()
-        }
-        val fix = createFillClassFix(
-            description = description,
-            withoutDefaultValues = withoutDefaultValues,
-            withoutDefaultArguments = withoutDefaultArguments,
-            withTrailingComma = withTrailingComma,
-            putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
-            movePointerToEveryArgument = movePointerToEveryArgument,
-        )
-        holder.registerProblem(element, description, fix)
-    })
+    ) = valueArgumentListVisitor(
+        fun(element: KtValueArgumentList) {
+            if (K2SupportHelper.isK2PluginEnabled()) return
+            val callElement = element.parent as? KtCallElement ?: return
+            val descriptors = analyze(callElement).ifEmpty { return }
+            val description =
+                if (descriptors.any { descriptor -> descriptor is ClassConstructorDescriptor }) {
+                    getConstructorPromptTitle()
+                } else {
+                    getFunctionPromptTitle()
+                }
+            val fix =
+                createFillClassFix(
+                    description = description,
+                    withoutDefaultValues = withoutDefaultValues,
+                    withoutDefaultArguments = withoutDefaultArguments,
+                    withTrailingComma = withTrailingComma,
+                    putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+                    movePointerToEveryArgument = movePointerToEveryArgument,
+                )
+            holder.registerProblem(element, description, fix)
+        },
+    )
 
     abstract fun getConstructorPromptTitle(): String
+
     abstract fun getFunctionPromptTitle(): String
 
     open fun createFillClassFix(
@@ -103,14 +108,15 @@ abstract class BaseFillClassInspection(
         withTrailingComma: Boolean,
         putArgumentsOnSeparateLines: Boolean,
         movePointerToEveryArgument: Boolean,
-    ): FillClassFix = FillClassFix(
-        description = description,
-        withoutDefaultValues = withoutDefaultValues,
-        withoutDefaultArguments = withoutDefaultArguments,
-        withTrailingComma = withTrailingComma,
-        putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
-        movePointerToEveryArgument = movePointerToEveryArgument,
-    )
+    ): FillClassFix =
+        FillClassFix(
+            description = description,
+            withoutDefaultValues = withoutDefaultValues,
+            withoutDefaultArguments = withoutDefaultArguments,
+            withTrailingComma = withTrailingComma,
+            putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+            movePointerToEveryArgument = movePointerToEveryArgument,
+        )
 
     companion object {
         const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill arguments without default values"
@@ -124,16 +130,17 @@ abstract class BaseFillClassInspection(
 private fun analyze(call: KtCallElement): List<FunctionDescriptor> {
     val context = call.analyze(BodyResolveMode.PARTIAL)
     val resolvedCall = call.calleeExpression?.getResolvedCall(context)
-    val descriptors = if (resolvedCall != null) {
-        val descriptor = resolvedCall.resultingDescriptor as? FunctionDescriptor ?: return emptyList()
-        listOf(descriptor)
-    } else {
-        call.calleeExpression?.mainReference?.multiResolve(false).orEmpty().mapNotNull {
-            val func = it.element as? KtFunction ?: return@mapNotNull null
-            val descriptor = func.descriptor as? FunctionDescriptor ?: return@mapNotNull null
-            descriptor
+    val descriptors =
+        if (resolvedCall != null) {
+            val descriptor = resolvedCall.resultingDescriptor as? FunctionDescriptor ?: return emptyList()
+            listOf(descriptor)
+        } else {
+            call.calleeExpression?.mainReference?.multiResolve(false).orEmpty().mapNotNull {
+                val func = it.element as? KtFunction ?: return@mapNotNull null
+                val descriptor = func.descriptor as? FunctionDescriptor ?: return@mapNotNull null
+                descriptor
+            }
         }
-    }
     val argumentSize = call.valueArguments.size
     return descriptors.filter { descriptor ->
         descriptor !is JavaCallableMemberDescriptor &&
@@ -153,14 +160,18 @@ open class FillClassFix(
 
     override fun getFamilyName() = name
 
-    override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+    override fun applyFix(
+        project: Project,
+        descriptor: ProblemDescriptor,
+    ) {
         val argumentList = descriptor.psiElement as? KtValueArgumentList ?: return
         val call = argumentList.parent as? KtCallElement ?: return
         val descriptors = analyze(call).ifEmpty { return }
 
         val lambdaArgument = call.lambdaArguments.singleOrNull()
-        val editor = argumentList.findExistingEditor()
-            ?: ImaginaryEditor(project, argumentList.containingFile.viewProvider.document)
+        val editor =
+            argumentList.findExistingEditor()
+                ?: ImaginaryEditor(project, argumentList.containingFile.viewProvider.document)
         if (descriptors.size == 1 || editor is ImaginaryEditor) {
             argumentList.fillArgumentsAndFormat(
                 descriptor = descriptors.first(),
@@ -179,28 +190,34 @@ open class FillClassFix(
         descriptors: List<FunctionDescriptor>,
         editor: Editor,
     ): BaseListPopupStep<String> {
-        val functionName = descriptors.first().let { descriptor ->
-            if (descriptor is ClassConstructorDescriptor) {
-                descriptor.containingDeclaration.name.asString()
-            } else {
-                descriptor.name.asString()
+        val functionName =
+            descriptors.first().let { descriptor ->
+                if (descriptor is ClassConstructorDescriptor) {
+                    descriptor.containingDeclaration.name.asString()
+                } else {
+                    descriptor.name.asString()
+                }
             }
-        }
-        val functions = descriptors
-            .sortedBy { descriptor -> descriptor.valueParameters.size }
-            .associateBy { descriptor ->
-                val key = descriptor.valueParameters.joinToString(
-                    separator = ", ",
-                    prefix = "$functionName(",
-                    postfix = ")",
-                    transform = { "${it.name}: ${it.type}" },
-                )
-                key
-            }
+        val functions =
+            descriptors
+                .sortedBy { descriptor -> descriptor.valueParameters.size }
+                .associateBy { descriptor ->
+                    val key =
+                        descriptor.valueParameters.joinToString(
+                            separator = ", ",
+                            prefix = "$functionName(",
+                            postfix = ")",
+                            transform = { "${it.name}: ${it.type}" },
+                        )
+                    key
+                }
         return object : BaseListPopupStep<String>("Choose Function", functions.keys.toList()) {
             override fun isAutoSelectionEnabled() = false
 
-            override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
+            override fun onChosen(
+                selectedValue: String,
+                finalChoice: Boolean,
+            ): PopupStep<*>? {
                 if (finalChoice) {
                     val parameters = functions[selectedValue]?.valueParameters.orEmpty()
                     CommandProcessor.getInstance().runUndoTransparentAction {
@@ -307,18 +324,20 @@ open class FillClassFix(
         }
 
         val fqName = descriptor?.importableFqName?.asString()
-        val valueParameters = descriptor?.constructors
-            ?.sortedByDescending { it.isPrimary } // primary constructor first
-            ?.firstOrNull { it is ClassConstructorDescriptor }
-            ?.valueParameters
-        val argumentExpression = if (fqName != null && valueParameters != null) {
-            (factory.createExpression("$fqName()")).also {
-                val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
-                callExpression?.valueArgumentList?.fillArguments(factory, valueParameters, editor)
+        val valueParameters =
+            descriptor?.constructors
+                ?.sortedByDescending { it.isPrimary } // primary constructor first
+                ?.firstOrNull { it is ClassConstructorDescriptor }
+                ?.valueParameters
+        val argumentExpression =
+            if (fqName != null && valueParameters != null) {
+                (factory.createExpression("$fqName()")).also {
+                    val callExpression = it as? KtCallExpression ?: (it as? KtQualifiedExpression)?.callExpression
+                    callExpression?.valueArgumentList?.fillArguments(factory, valueParameters, editor)
+                }
+            } else {
+                null
             }
-        } else {
-            null
-        }
         return factory.createArgument(argumentExpression, parameter.name)
     }
 
@@ -348,28 +367,31 @@ open class FillClassFix(
         }
     }
 
-    private fun KotlinType.lambdaDefaultValue(): String = buildString {
-        append("{")
-        if (arguments.size > 2) {
-            val validator = CollectingNameValidator()
-            val lambdaParameters = arguments.dropLast(1).joinToString(postfix = "->") {
-                val type = it.type
-                val name = KotlinNameSuggester.suggestNamesByType(type, validator, "param")[0]
-                validator.addName(name)
-                val typeText = type.constructor.declarationDescriptor?.importableFqName?.asString() ?: type.toString()
-                val nullable = if (type.isMarkedNullable) "?" else ""
-                "$name: $typeText$nullable"
+    private fun KotlinType.lambdaDefaultValue(): String =
+        buildString {
+            append("{")
+            if (arguments.size > 2) {
+                val validator = CollectingNameValidator()
+                val lambdaParameters =
+                    arguments.dropLast(1).joinToString(postfix = "->") {
+                        val type = it.type
+                        val name = KotlinNameSuggester.suggestNamesByType(type, validator, "param")[0]
+                        validator.addName(name)
+                        val typeText = type.constructor.declarationDescriptor?.importableFqName?.asString() ?: type.toString()
+                        val nullable = if (type.isMarkedNullable) "?" else ""
+                        "$name: $typeText$nullable"
+                    }
+                append(lambdaParameters)
             }
-            append(lambdaParameters)
+            append("}")
         }
-        append("}")
-    }
 
     private fun KotlinType.firstEnumValueOrNull(): String? {
         val names = this.memberScope.computeAllNames() ?: return null
         for (name in names) {
-            val descriptor = this.memberScope.getContributedClassifier(name, NoLookupLocation.FROM_IDE)
-                ?: continue
+            val descriptor =
+                this.memberScope.getContributedClassifier(name, NoLookupLocation.FROM_IDE)
+                    ?: continue
             if (descriptor.defaultType.supertypes().contains(this)) {
                 return descriptor.fqNameOrNull()?.asString() ?: continue
             }
@@ -393,7 +415,10 @@ open class FillClassFix(
     private fun KtValueArgumentList.hasTrailingComma() =
         rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
 
-    private fun KtValueArgumentList.startToReplaceArguments(startIndex: Int, editor: Editor) {
+    private fun KtValueArgumentList.startToReplaceArguments(
+        startIndex: Int,
+        editor: Editor,
+    ) {
         val templateBuilder = TemplateBuilderImpl(this)
         arguments.drop(startIndex).forEach { argument ->
             val argumentExpression = argument.getArgumentExpression()

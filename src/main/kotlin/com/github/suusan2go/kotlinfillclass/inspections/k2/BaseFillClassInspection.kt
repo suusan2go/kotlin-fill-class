@@ -67,7 +67,6 @@ abstract class BaseFillClassInspection(
     @JvmField var putArgumentsOnSeparateLines: Boolean = false,
     @JvmField var movePointerToEveryArgument: Boolean = true,
 ) : KotlinApplicableInspectionBase.Simple<KtValueArgumentList, BaseFillClassInspection.Context>() {
-
     data class Context(
         val functionName: String,
         val candidates: List<String>,
@@ -78,7 +77,10 @@ abstract class BaseFillClassInspection(
 
     abstract fun getFunctionPromptDescription(): String
 
-    override fun getProblemDescription(element: KtValueArgumentList, context: Context): String {
+    override fun getProblemDescription(
+        element: KtValueArgumentList,
+        context: Context,
+    ): String {
         return if (context.isConstructor) {
             getConstructorPromptDescription()
         } else {
@@ -102,50 +104,60 @@ abstract class BaseFillClassInspection(
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
-    ) = valueArgumentListVisitor(fun(element: KtValueArgumentList) {
-        visitTargetElement(element, holder, isOnTheFly)
-    })
+    ) = valueArgumentListVisitor(
+        fun(element: KtValueArgumentList) {
+            visitTargetElement(element, holder, isOnTheFly)
+        },
+    )
 
-    override fun getApplicableRanges(element: KtValueArgumentList): List<TextRange> =
-        ApplicabilityRange.self(element)
+    override fun getApplicableRanges(element: KtValueArgumentList): List<TextRange> = ApplicabilityRange.self(element)
 
-    context(KaSession) override fun prepareContext(element: KtValueArgumentList): Context? {
+    context(KaSession)
+    override fun prepareContext(element: KtValueArgumentList): Context? {
         if (!K2SupportHelper.isK2PluginEnabled()) return null
         val callExpression = element.parent as? KtCallExpression ?: return null
         return callExpression.findCandidates().takeIf { it.isNotEmpty() }?.let {
             Context(
                 functionName = it[0].partiallyAppliedSymbol.signature.toString(),
-                candidates = it.map { call ->
-                    callExpression.calleeExpression?.text + (call.symbol.psi?.getChildOfType<KtParameterList>()?.text
-                        ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
-                            prefix = "(",
-                            postfix = ")",
-                            separator = ", ",
-                            transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
-                        ))
-                },
-                isConstructor = it[0].symbol is KaConstructorSymbol
+                candidates =
+                    it.map { call ->
+                        callExpression.calleeExpression?.text + (
+                            call.symbol.psi?.getChildOfType<KtParameterList>()?.text
+                                ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
+                                    prefix = "(",
+                                    postfix = ")",
+                                    separator = ", ",
+                                    transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
+                                )
+                        )
+                    },
+                isConstructor = it[0].symbol is KaConstructorSymbol,
             )
         }
     }
 
-    context(KaSession) private fun KtCallElement.findCandidates(): List<KaSimpleFunctionCall> {
+    context(KaSession)
+    private fun KtCallElement.findCandidates(): List<KaSimpleFunctionCall> {
         return findCandidates(valueArguments.size)
     }
 
-    context(KaSession) private fun KtElement.findCandidates(argumentSize: Int): List<KaSimpleFunctionCall> {
+    context(KaSession)
+    private fun KtElement.findCandidates(argumentSize: Int): List<KaSimpleFunctionCall> {
         val resolvedCall = resolveToCall()
         if (resolvedCall is KaErrorCallInfo) {
-            val candidates = resolvedCall.candidateCalls
-                .mapNotNull { it as? KaSimpleFunctionCall }
-                .filter { ktCall ->
-                    ktCall.symbol.origin !in listOf(
-                        KaSymbolOrigin.JAVA_SOURCE,
-                        KaSymbolOrigin.JAVA_LIBRARY,
-                        KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
-                        KaSymbolOrigin.JS_DYNAMIC
-                    ) && ktCall.partiallyAppliedSymbol.signature.valueParameters.filterNot { it.symbol.isVararg }.size > argumentSize
-                }
+            val candidates =
+                resolvedCall.candidateCalls
+                    .mapNotNull { it as? KaSimpleFunctionCall }
+                    .filter { ktCall ->
+                        ktCall.symbol.origin !in
+                            listOf(
+                                KaSymbolOrigin.JAVA_SOURCE,
+                                KaSymbolOrigin.JAVA_LIBRARY,
+                                KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
+                                KaSymbolOrigin.JS_DYNAMIC,
+                            ) && ktCall.partiallyAppliedSymbol.signature.valueParameters
+                                .filterNot { it.symbol.isVararg }.size > argumentSize
+                    }
             return candidates
         }
         return emptyList()
@@ -157,15 +169,20 @@ abstract class BaseFillClassInspection(
 
     override fun createQuickFix(
         element: KtValueArgumentList,
-        context: Context
-    ) = object: KotlinModCommandQuickFix<KtValueArgumentList>() {
-        override fun getFamilyName() = if (context.isConstructor) {
-            getConstructorPromptDescription()
-        } else {
-            getFunctionPromptDescription()
-        }
+        context: Context,
+    ) = object : KotlinModCommandQuickFix<KtValueArgumentList>() {
+        override fun getFamilyName() =
+            if (context.isConstructor) {
+                getConstructorPromptDescription()
+            } else {
+                getFunctionPromptDescription()
+            }
 
-        override fun applyFix(project: Project, element: KtValueArgumentList, updater: ModPsiUpdater) {
+        override fun applyFix(
+            project: Project,
+            element: KtValueArgumentList,
+            updater: ModPsiUpdater,
+        ) {
             val call = element.parent as? KtCallElement ?: return
             val lambdaArgument = call.lambdaArguments.singleOrNull()
             if (context.candidates.size == 1 || isPreviewSession()) {
@@ -194,35 +211,39 @@ abstract class BaseFillClassInspection(
         lambdaArgument: KtLambdaArgument?,
         project: Project,
     ): BaseListPopupStep<String> {
-        val functionIndexes = context.candidates
-            .mapIndexed { index, valueParams -> valueParams to index }
-            .sortedBy { it.first.length }
-            .toMap()
+        val functionIndexes =
+            context.candidates
+                .mapIndexed { index, valueParams -> valueParams to index }
+                .sortedBy { it.first.length }
+                .toMap()
 
         return object : BaseListPopupStep<String>("Choose Function", functionIndexes.keys.toList()) {
             override fun isAutoSelectionEnabled() = false
 
-            override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
+            override fun onChosen(
+                selectedValue: String,
+                finalChoice: Boolean,
+            ): PopupStep<*>? {
                 if (finalChoice) {
                     return doFinalStep {
                         val editor = PsiEditorUtil.findEditor(argumentList)
                         val ac = ActionContext.from(editor, argumentList.containingFile)
                         allowAnalysisOnEdt {
                             analyze(argumentList) {
-                                val modCommand = ModCommand.psiUpdate(ac) { eu ->
-                                    val e = eu.getWritable(argumentList)
-                                    val call = e.parent as? KtCallElement ?: return@psiUpdate
-                                    val index = functionIndexes[selectedValue] ?: return@psiUpdate
-                                    val parameters = call.findCandidates()[index]
-                                    e.fillArgumentsAndFormat(parameters, eu, lambdaArgument)
-                                }
+                                val modCommand =
+                                    ModCommand.psiUpdate(ac) { eu ->
+                                        val e = eu.getWritable(argumentList)
+                                        val call = e.parent as? KtCallElement ?: return@psiUpdate
+                                        val index = functionIndexes[selectedValue] ?: return@psiUpdate
+                                        val parameters = call.findCandidates()[index]
+                                        e.fillArgumentsAndFormat(parameters, eu, lambdaArgument)
+                                    }
 
                                 CommandProcessor.getInstance().executeCommand(project, {
                                     ModCommandExecutor.getInstance().executeInteractively(ac, modCommand, editor)
                                 }, "", null)
                             }
                         }
-
                     }
                 }
 
@@ -231,7 +252,8 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    context(KaSession) private fun KtValueArgumentList.fillArgumentsAndFormat(
+    context(KaSession)
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
         ktCall: KaSimpleFunctionCall,
         updater: ModPsiUpdater?,
         lambdaArgument: KtLambdaArgument?,
@@ -239,7 +261,8 @@ abstract class BaseFillClassInspection(
         fillArgumentsAndFormat(ktCall.partiallyAppliedSymbol.signature.valueParameters, updater, lambdaArgument)
     }
 
-    context(KaSession) private fun KtValueArgumentList.fillArgumentsAndFormat(
+    context(KaSession)
+    private fun KtValueArgumentList.fillArgumentsAndFormat(
         parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
         updater: ModPsiUpdater?,
         lambdaArgument: KtLambdaArgument? = null,
@@ -283,7 +306,8 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    context(KaSession) private fun KtValueArgumentList.createArguments(
+    context(KaSession)
+    private fun KtValueArgumentList.createArguments(
         factory: KtPsiFactory,
         parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
         lambdaArgument: KtLambdaArgument? = null,
@@ -302,7 +326,8 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    context(KaSession) private fun createDefaultValueArgument(
+    context(KaSession)
+    private fun createDefaultValueArgument(
         parameter: KaVariableSignature<KaValueParameterSymbol>,
         factory: KtPsiFactory,
     ): KtValueArgument {
@@ -316,11 +341,13 @@ abstract class BaseFillClassInspection(
 
         val returnType = parameter.returnType
         if (returnType.isEnum() ||
-            returnType.symbol?.modality in listOf(KaSymbolModality.ABSTRACT, KaSymbolModality.SEALED)) {
+            returnType.symbol?.modality in listOf(KaSymbolModality.ABSTRACT, KaSymbolModality.SEALED)
+        ) {
             return factory.createArgument(null, parameter.name)
         }
-        val fqName = returnType.symbol?.classId?.asFqNameString()
-            ?: return factory.createArgument(null, parameter.name)
+        val fqName =
+            returnType.symbol?.classId?.asFqNameString()
+                ?: return factory.createArgument(null, parameter.name)
         var argumentExpression: KtExpression? = null
         if (returnType.symbol?.psi is KtObjectDeclaration) {
             argumentExpression = factory.createExpression(fqName)
@@ -332,12 +359,13 @@ abstract class BaseFillClassInspection(
 //                    findDescendantOfType<KtValueArgumentList> { true }?.fillArgumentsAndFormat(resolvedCall, null, null)
 //                }
 //            }
-            argumentExpression = factory.createExpression("${fqName}()")
+            argumentExpression = factory.createExpression("$fqName()")
         }
         return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    context(KaSession) protected abstract fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String?
+    context(KaSession)
+    protected abstract fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String?
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
         return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
@@ -355,7 +383,10 @@ abstract class BaseFillClassInspection(
     private fun KtValueArgumentList.hasTrailingComma() =
         rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
 
-    private fun KtValueArgumentList.startToReplaceArguments(startIndex: Int, updater: ModPsiUpdater) {
+    private fun KtValueArgumentList.startToReplaceArguments(
+        startIndex: Int,
+        updater: ModPsiUpdater,
+    ) {
         val templateBuilder = updater.templateBuilder()
         arguments.drop(startIndex).forEach { argument ->
             val argumentExpression = argument.getArgumentExpression()

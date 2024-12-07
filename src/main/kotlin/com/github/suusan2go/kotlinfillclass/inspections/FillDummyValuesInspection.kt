@@ -8,7 +8,6 @@ import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import javax.swing.JComponent
 
 class FillDummyValuesInspection : BaseFillClassInspection(withoutDefaultValues = false) {
-
     override fun getConstructorPromptTitle(): String {
         return "Fill class constructor with dummy values"
     }
@@ -56,13 +55,13 @@ class FillDummyValueFix(
     putArgumentsOnSeparateLines: Boolean,
     movePointerToEveryArgument: Boolean,
 ) : FillClassFix(
-    description,
-    withoutDefaultValues,
-    withoutDefaultArguments,
-    withTrailingComma,
-    putArgumentsOnSeparateLines,
-    movePointerToEveryArgument,
-) {
+        description,
+        withoutDefaultValues,
+        withoutDefaultArguments,
+        withTrailingComma,
+        putArgumentsOnSeparateLines,
+        movePointerToEveryArgument,
+    ) {
     override fun fillValue(descriptor: ValueParameterDescriptor): String? {
         val type = descriptor.type
         val paramName = descriptor.name.asString()

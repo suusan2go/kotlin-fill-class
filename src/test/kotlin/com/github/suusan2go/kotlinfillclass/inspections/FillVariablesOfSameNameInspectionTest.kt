@@ -1,14 +1,39 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.github.suusan2go.kotlinfillclass.inspections.util.PluginTestUtils
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.openapi.util.Disposer
 import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.idea.KotlinFileType
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
 
-class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
+class FillVariablesOfSameNameInspectionTest {
+    private var _myFixture: CodeInsightTestFixture? = null
+    private val myFixture: CodeInsightTestFixture
+        get() = requireNotNull(_myFixture)
 
+    @BeforeEach
+    fun setUp(testInfo: TestInfo) {
+        _myFixture = PluginTestUtils.createMyFixture(testInfo)
+        myFixture.setUp()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        myFixture.tearDown()
+        _myFixture = null
+    }
+
+    @Test
     fun `test fill class constructor`() {
         doAvailableTest(
             """
@@ -26,6 +51,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test can't fill class constructor`() {
         doUnavailableTest(
             """
@@ -37,6 +63,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill function`() {
         doAvailableTest(
             """
@@ -57,6 +84,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test can't fill function`() {
         doUnavailableTest(
             """
@@ -68,6 +96,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test can't fill function with lambda argument`() {
         doUnavailableTest(
             """
@@ -80,6 +109,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill function with lambda argument`() {
         doAvailableTest(
             """
@@ -98,6 +128,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill function with lambda argument and trailing comma`() {
         doAvailableTest(
             """
@@ -109,8 +140,9 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: String, block: () -> Unit) {}
             fun main() {
-                foo(1,
-                        b = b,
+                foo(
+                    1,
+                    b = b,
                 ) {}
             }
         """,
@@ -120,6 +152,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill for non primitive types`() {
         doAvailableTest(
             """
@@ -143,6 +176,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test add default value for enum`() {
         doAvailableTest(
             """
@@ -166,6 +200,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test add default value for enum from dependency`() {
         val dependency = """
             package com.example
@@ -194,6 +229,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test add default value for java enum`() {
         val dependency = """
             package com.example
@@ -231,6 +267,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test don't add default value for abstract,sealed`() {
         doAvailableTest(
             """
@@ -252,6 +289,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test add import directives`() {
         val dependency = """
             package com.example
@@ -274,6 +312,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test call java constructor`() {
         val javaDependency = JavaDependency(
             className = "Java",
@@ -294,6 +333,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test call java method`() {
         val javaDependency = JavaDependency(
             className = "Java",
@@ -317,6 +357,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill super type call entry`() {
         doAvailableTest(
             """
@@ -330,6 +371,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test extension function`() {
         doAvailableTest(
             """
@@ -350,6 +392,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test imported extension function`() {
         doAvailableTest(
             """
@@ -376,6 +419,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test do not fill default arguments`() {
         doAvailableTest(
             """
@@ -394,6 +438,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test fill lambda arguments`() {
         val dependency = """
             package foo
@@ -423,6 +468,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test do not add trailing comma`() {
         doAvailableTest(
             """
@@ -441,6 +487,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test add trailing comma`() {
         doAvailableTest(
             """
@@ -452,13 +499,14 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
             """
             class User(val name: String, val age: Int = 0)
             fun test() {
-                User(name = name, age = age, )
+                User(name = name, age = age,)
             }
         """,
             withTrailingComma = true,
         )
     }
 
+    @Test
     fun `test do not add trailing comma if trailing comma already exists`() {
         doAvailableTest(
             """
@@ -484,6 +532,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test do not put arguments on separate lines`() {
         doAvailableTest(
             """
@@ -503,6 +552,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test put arguments on separate lines`() {
         doAvailableTest(
             """
@@ -514,10 +564,12 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
             fun test() {
-                foo(a = a,
-                        b = b,
-                        c = c,
-                        d = d)
+                foo(
+                    a = a,
+                    b = b,
+                    c = c,
+                    d = d
+                )
             }
         """,
             problemDescription = "Fill class constructor with variables of the same name",
@@ -525,6 +577,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test put arguments on separate lines with existing arguments`() {
         doAvailableTest(
             """
@@ -536,10 +589,12 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
             """
             fun foo(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
             fun test() {
-                foo(a = 1,
-                        b = 2,
-                        c = c,
-                        d = d)
+                foo(
+                    a = 1,
+                    b = 2,
+                    c = c,
+                    d = d
+                )
             }
         """,
             problemDescription = "Fill class constructor with variables of the same name",
@@ -547,6 +602,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test move pointer to every argument`() {
         doAvailableTest(
             """
@@ -562,6 +618,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test move pointer to every argument with existing arguments`() {
         doAvailableTest(
             """
@@ -577,6 +634,7 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun `test move pointer to every argument with putArgumentsOnSeparateLines`() {
         doAvailableTest(
             """
@@ -585,9 +643,11 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         """,
             """
             fun foo(x: Int, y: Int, z: Int) = x + y + z
-            val bar = foo(x = x<caret>,
-                    y = y,
-                    z = z)
+            val bar = foo(
+                x = x<caret>,
+                y = y,
+                z = z
+            )
         """,
             problemDescription = "Fill class constructor with variables of the same name",
             putArgumentsOnSeparateLines = true,
@@ -662,7 +722,8 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         javaDependencies.forEach { (className, source) ->
             myFixture.configureByText("$className.java", source.trimIndent())
         }
-        myFixture.configureByText(KotlinFileType.INSTANCE, code.trimIndent())
+        val targetCode = code.trimIndent()
+        myFixture.configureByText(KotlinFileType.INSTANCE, targetCode)
 
         val inspection = FillVariablesOfSameNameInspection().apply {
             this.withoutDefaultArguments = withoutDefaultArguments
@@ -672,16 +733,16 @@ class FillVariablesOfSameNameInspectionTest : BasePlatformTestCase() {
         }
         myFixture.enableInspections(inspection)
 
-        val inspectionProfileManager = ProjectInspectionProfileManager.getInstance(project)
+        val inspectionProfileManager = ProjectInspectionProfileManager.getInstance(myFixture.project)
         val inspectionProfile = inspectionProfileManager.currentProfile
-        val state = inspectionProfile.getToolDefaultState(inspection.shortName, project)
+        val state = inspectionProfile.getToolDefaultState(inspection.shortName, myFixture.project)
         state.level = HighlightDisplayLevel.WARNING
 
-        val caretOffset = myFixture.caretOffset
+        val caretOffset = targetCode.indexOf("<caret>")
         return myFixture.doHighlighting().singleOrNull {
             it.inspectionToolId == "FillVariablesOfSameName" &&
-                it.description == problemDescription &&
-                caretOffset in it.startOffset..it.endOffset
+                    it.description == problemDescription &&
+                    caretOffset in it.startOffset..it.endOffset
         }
     }
 

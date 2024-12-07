@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -15,11 +16,12 @@ plugins {
     id("java")
     id("org.jetbrains.intellij.platform") version "2.1.0"
     id("org.jetbrains.kotlin.jvm") version "2.0.20"
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 val pluginVersion = "1.0.23"
@@ -50,11 +52,8 @@ repositories {
     maven("https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies")
     intellijPlatform {
         defaultRepositories()
-
     }
 }
-
-val ktlint by configurations.creating
 
 dependencies {
     intellijPlatform {
@@ -62,8 +61,9 @@ dependencies {
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         instrumentationTools()
+        testFramework(TestFrameworkType.Platform)
     }
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
 //    compileOnly("org.jetbrains.kotlin:high-level-api-for-ide::2.0.20-ij242-38") {
 //        exclude(group = "org.jetbrains.kotlin", module = "analysis-api")
 //    }
@@ -76,46 +76,24 @@ dependencies {
     // Lorem : An extremely useful Lorem Ipsum generator for Java!
     implementation("com.thedeanda:lorem:2.1")
 
-    testImplementation("junit:junit:4.13.1")
-    testImplementation("io.mockk:mockk:1.13.4")
-    ktlint("com.pinterest:ktlint:0.42.1") {
-        attributes {
-            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling.EXTERNAL))
-        }
-    }
-
+    testImplementation(platform("org.junit:junit-bom:5.11.3"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("com.intellij.platform:kotlinx-coroutines-core-jvm:1.8.0-intellij-9")
 }
 
 tasks.named<KotlinCompile>("compileKotlin") {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
+    compilerOptions.jvmTarget = JvmTarget.JVM_17
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
+    compilerOptions.jvmTarget = JvmTarget.JVM_17
 }
 
-val ktlintTask = tasks.register<JavaExec>("ktlint") {
-    group = "verification"
-    description = "Check Kotlin code style."
-    classpath = ktlint
-    mainClass.set("com.pinterest.ktlint.Main")
-    args = listOf("src/**/*.kt")
-    // to generate report in checkstyle format prepend following args:
-    // "--reporter=plain", "--reporter=checkstyle,output=${buildDir}/ktlint.xml"
-    // to add a baseline to check against prepend following args:
-    // "--baseline=ktlint-baseline.xml"
-    // see https://github.com/pinterest/ktlint#usage for more
-}
-tasks.check {
-    dependsOn.add(ktlintTask)
-}
-
-tasks.register<JavaExec>("ktlintFormat") {
-    group = "formatting"
-    description = "Fix Kotlin code style deviations."
-    classpath = ktlint
-    mainClass.set("com.pinterest.ktlint.Main")
-    args = listOf("-F", "src/**/*.kt")
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 val runK2 by intellijPlatformTesting.runIde.creating {
