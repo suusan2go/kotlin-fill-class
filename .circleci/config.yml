@@ -27,7 +27,7 @@ jobs:
           keys:
           - v1-dependencies-{{ checksum "build.gradle" }}
           - v1-dependencies-
-      - run: ./gradlew ktlint
+      - run: ./gradlew ktlintMainSourceSetCheck
   test:
     docker:
       - image: cimg/openjdk:17.0

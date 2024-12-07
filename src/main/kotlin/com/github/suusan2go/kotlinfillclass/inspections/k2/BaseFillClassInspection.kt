@@ -104,11 +104,9 @@ abstract class BaseFillClassInspection(
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
-    ) = valueArgumentListVisitor(
-        fun(element: KtValueArgumentList) {
-            visitTargetElement(element, holder, isOnTheFly)
-        },
-    )
+    ) = valueArgumentListVisitor { element ->
+        visitTargetElement(element, holder, isOnTheFly)
+    }
 
     override fun getApplicableRanges(element: KtValueArgumentList): List<TextRange> = ApplicabilityRange.self(element)
 

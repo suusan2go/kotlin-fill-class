@@ -73,29 +73,27 @@ abstract class BaseFillClassInspection(
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
-    ) = valueArgumentListVisitor(
-        fun(element: KtValueArgumentList) {
-            if (K2SupportHelper.isK2PluginEnabled()) return
-            val callElement = element.parent as? KtCallElement ?: return
-            val descriptors = analyze(callElement).ifEmpty { return }
-            val description =
-                if (descriptors.any { descriptor -> descriptor is ClassConstructorDescriptor }) {
-                    getConstructorPromptTitle()
-                } else {
-                    getFunctionPromptTitle()
-                }
-            val fix =
-                createFillClassFix(
-                    description = description,
-                    withoutDefaultValues = withoutDefaultValues,
-                    withoutDefaultArguments = withoutDefaultArguments,
-                    withTrailingComma = withTrailingComma,
-                    putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
-                    movePointerToEveryArgument = movePointerToEveryArgument,
-                )
-            holder.registerProblem(element, description, fix)
-        },
-    )
+    ) = valueArgumentListVisitor { element ->
+        if (K2SupportHelper.isK2PluginEnabled()) return@valueArgumentListVisitor
+        val callElement = element.parent as? KtCallElement ?: return@valueArgumentListVisitor
+        val descriptors = analyze(callElement).ifEmpty { return@valueArgumentListVisitor }
+        val description =
+            if (descriptors.any { descriptor -> descriptor is ClassConstructorDescriptor }) {
+                getConstructorPromptTitle()
+            } else {
+                getFunctionPromptTitle()
+            }
+        val fix =
+            createFillClassFix(
+                description = description,
+                withoutDefaultValues = withoutDefaultValues,
+                withoutDefaultArguments = withoutDefaultArguments,
+                withTrailingComma = withTrailingComma,
+                putArgumentsOnSeparateLines = putArgumentsOnSeparateLines,
+                movePointerToEveryArgument = movePointerToEveryArgument,
+            )
+        holder.registerProblem(element, description, fix)
+    }
 
     abstract fun getConstructorPromptTitle(): String
 
