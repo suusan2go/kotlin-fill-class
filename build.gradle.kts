@@ -25,7 +25,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-val pluginVersion = "1.0.23"
+val pluginVersion = "2.0.0"
 
 intellijPlatform {
     buildSearchableOptions = true
