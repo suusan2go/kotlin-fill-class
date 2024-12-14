@@ -17,6 +17,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.1.0"
     id("org.jetbrains.kotlin.jvm") version "2.0.20"
     id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
+    id("jvm-test-suite")
 }
 
 java {
@@ -64,15 +65,7 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
-//    compileOnly("org.jetbrains.kotlin:high-level-api-for-ide::2.0.20-ij242-38") {
-//        exclude(group = "org.jetbrains.kotlin", module = "analysis-api")
-//    }
-//    compileOnly("org.jetbrains.kotlin:high-level-api-fir-for-ide::2.0.20-ij242-38") {
-//        exclude(group = "org.jetbrains.kotlin", module = "analysis-api-fir")
-//    }
-//    compileOnly("org.jetbrains.kotlin:high-level-api-fe10-for-ide:2.0.20-ij242-38") {
-//        exclude(group = "org.jetbrains.kotlin", module = "analysis-api-fe10")
-//    }
+
     // Lorem : An extremely useful Lorem Ipsum generator for Java!
     implementation("com.thedeanda:lorem:2.1")
 
@@ -94,6 +87,12 @@ tasks.named<KotlinCompile>("compileTestKotlin") {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    if (System.getProperty("idea.kotlin.plugin.use.k2") == "true") {
+        include("com/github/suusan2go/kotlinfillclass/inspections/k2/**/*")
+        systemProperty("idea.kotlin.plugin.use.k2", true)
+    } else {
+        exclude("com/github/suusan2go/kotlinfillclass/inspections/k2/**/*")
+    }
 }
 
 val runK2 by intellijPlatformTesting.runIde.creating {
