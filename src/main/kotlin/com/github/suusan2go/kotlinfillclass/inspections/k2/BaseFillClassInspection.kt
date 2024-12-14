@@ -29,7 +29,6 @@ import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.resolution.KaErrorCallInfo
 import org.jetbrains.kotlin.analysis.api.resolution.KaFunctionCall
-import org.jetbrains.kotlin.analysis.api.resolution.KaSimpleFunctionCall
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
