@@ -38,6 +38,7 @@ object ValueGenerator {
     }
 
     fun getRandomNumber() = staticNum++
+
     fun getRandomChar(): Char {
         return ('A'..'Z').random()
     }

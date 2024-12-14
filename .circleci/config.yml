@@ -27,7 +27,7 @@ jobs:
           keys:
           - v1-dependencies-{{ checksum "build.gradle" }}
           - v1-dependencies-
-      - run: ./gradlew ktlint
+      - run: ./gradlew ktlintMainSourceSetCheck
   test:
     docker:
       - image: cimg/openjdk:17.0
@@ -39,6 +39,17 @@ jobs:
           - v1-dependencies-{{ checksum "build.gradle" }}
           - v1-dependencies-
       - run: ./gradlew test
+  testK2:
+    docker:
+      - image: cimg/openjdk:17.0
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            - v1-dependencies-
+      - run: ./gradlew test -Didea.kotlin.plugin.use.k2=true
 
 workflows:
   version: 2

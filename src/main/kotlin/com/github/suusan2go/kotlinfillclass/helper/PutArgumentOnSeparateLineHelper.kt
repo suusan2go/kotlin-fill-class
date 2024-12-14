@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 
 object PutArgumentOnSeparateLineHelper {
-
     private val intentionClass: Class<*>? by lazy {
         try {
             Class.forName("org.jetbrains.kotlin.idea.intentions.ChopArgumentListIntention")
@@ -20,7 +19,10 @@ object PutArgumentOnSeparateLineHelper {
 
     fun isAvailable(): Boolean = intentionClass != null
 
-    fun applyTo(element: KtValueArgumentList, editor: Editor?) {
+    fun applyTo(
+        element: KtValueArgumentList,
+        editor: Editor?,
+    ) {
         val clazz = intentionClass ?: return
         val constructor = clazz.getConstructor()
         val intention = constructor.newInstance()

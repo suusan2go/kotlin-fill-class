@@ -1,5 +1,6 @@
 package com.github.suusan2go.kotlinfillclass.inspections
 
+import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
@@ -7,7 +8,6 @@ import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import javax.swing.JComponent
 
 class FillDummyValuesInspection : BaseFillClassInspection(withoutDefaultValues = false) {
-
     override fun getConstructorPromptTitle(): String {
         return "Fill class constructor with dummy values"
     }
@@ -16,7 +16,8 @@ class FillDummyValuesInspection : BaseFillClassInspection(withoutDefaultValues =
         return "Fill function with dummy values"
     }
 
-    override fun createOptionsPanel(): JComponent {
+    override fun createOptionsPanel(): JComponent? {
+        if (K2SupportHelper.isK2PluginEnabled()) return null
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
         panel.addCheckbox(LABEL_WITH_TRAILING_COMMA, "withTrailingComma")
@@ -54,13 +55,13 @@ class FillDummyValueFix(
     putArgumentsOnSeparateLines: Boolean,
     movePointerToEveryArgument: Boolean,
 ) : FillClassFix(
-    description,
-    withoutDefaultValues,
-    withoutDefaultArguments,
-    withTrailingComma,
-    putArgumentsOnSeparateLines,
-    movePointerToEveryArgument,
-) {
+        description,
+        withoutDefaultValues,
+        withoutDefaultArguments,
+        withTrailingComma,
+        putArgumentsOnSeparateLines,
+        movePointerToEveryArgument,
+    ) {
     override fun fillValue(descriptor: ValueParameterDescriptor): String? {
         val type = descriptor.type
         val paramName = descriptor.name.asString()
