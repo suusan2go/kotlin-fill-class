@@ -10,13 +10,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>1.0.23</h2>
+      <h2>2.0.0</h2>
       <ul>
         <li>
-          Add "Fill class constructor with variables of the same name" inspection
-          <ul>
-            <li>This is useful to convert classes from data layer to domain layer</li>
-          </ul>
+          Add K2 support<br>
+          Currently, code generation for nested constructor calls is not supported in the K2 version.
         </li>
       </ul>
     ]]>
