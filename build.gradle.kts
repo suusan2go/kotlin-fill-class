@@ -1,4 +1,6 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -21,29 +23,11 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
-val pluginVersion = "2.0.0"
-
-intellijPlatform {
-    buildSearchableOptions = true
-    instrumentCode = true
-    projectName = project.name
-    pluginConfiguration {
-        id = "com.suusan2go.kotlin-fill-class"
-        version = pluginVersion
-        name = "kotlin-fill-class"
-        ideaVersion {
-            sinceBuild = "242.21829.142"
-            untilBuild = null
-        }
-    }
-    publishing {
-        token = System.getenv("TOKEN")
-    }
-}
+val pluginVersion = "2.0.1"
 
 group = "com.github.suusan2go.kotlin-fill-class"
 version = pluginVersion
@@ -53,18 +37,20 @@ repositories {
     maven("https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies")
     intellijPlatform {
         defaultRepositories()
+        jetbrainsRuntime()
     }
 }
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.2.4")
+        intellijIdeaCommunity("2024.2.1")
+        jetbrainsRuntime()
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         instrumentationTools()
         testFramework(TestFrameworkType.Platform)
+        pluginVerifier()
     }
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
     // Lorem : An extremely useful Lorem Ipsum generator for Java!
     implementation("com.thedeanda:lorem:2.1")
@@ -78,11 +64,11 @@ dependencies {
 }
 
 tasks.named<KotlinCompile>("compileKotlin") {
-    compilerOptions.jvmTarget = JvmTarget.JVM_17
+    compilerOptions.jvmTarget = JvmTarget.JVM_21
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-    compilerOptions.jvmTarget = JvmTarget.JVM_17
+    compilerOptions.jvmTarget = JvmTarget.JVM_21
 }
 
 tasks.named<Test>("test") {
@@ -106,6 +92,33 @@ kotlin {
         freeCompilerArgs.add("-Xcontext-receivers")
     }
     compilerOptions {
-        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+    }
+}
+
+intellijPlatform {
+    buildSearchableOptions = true
+    instrumentCode = true
+    projectName = project.name
+    pluginConfiguration {
+        id = "com.suusan2go.kotlin-fill-class"
+        version = pluginVersion
+        name = "kotlin-fill-class"
+        ideaVersion {
+            sinceBuild = "242"
+            untilBuild = provider { null }
+        }
+    }
+    pluginVerification {
+        ides {
+            select {
+                types = listOf(IntelliJPlatformType.IntellijIdeaCommunity)
+                channels = listOf(ProductRelease.Channel.RELEASE)
+                sinceBuild = "2024.2.1"
+            }
+        }
+    }
+    publishing {
+        token = System.getenv("TOKEN")
     }
 }

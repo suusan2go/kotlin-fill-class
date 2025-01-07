@@ -21,9 +21,10 @@
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="241.*"/>
+    <idea-version since-build="242"/>
 
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
 
     <!-- conditional include is not yet supported for third-party plug-ins -->
