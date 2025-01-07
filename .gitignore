@@ -114,3 +114,5 @@ modules.xml
 
 # Ignore CodeStyle
 .idea/codeStyles/**
+
+.intellijPlatform
