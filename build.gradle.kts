@@ -37,14 +37,12 @@ repositories {
     maven("https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies")
     intellijPlatform {
         defaultRepositories()
-        jetbrainsRuntime()
     }
 }
 
 dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2024.2.1")
-        jetbrainsRuntime()
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         instrumentationTools()
