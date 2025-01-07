@@ -10,11 +10,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>2.0.0</h2>
+      <h2>2.0.1</h2>
       <ul>
         <li>
-          Add K2 support<br>
-          Currently, code generation for nested constructor calls is not supported in the K2 version.
+          Fix IDE version range
         </li>
       </ul>
     ]]>
