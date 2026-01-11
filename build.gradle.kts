@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    val kotlinVersion = "2.0.20"
+    val kotlinVersion = "2.3.0"
     repositories {
         mavenCentral()
     }
@@ -14,11 +14,12 @@ buildscript {
     }
 }
 
+
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.1.0"
-    id("org.jetbrains.kotlin.jvm") version "2.0.20"
-    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
+    id("org.jetbrains.intellij.platform") version "2.10.5"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.0.1"
     id("jvm-test-suite")
 }
 
@@ -27,7 +28,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-val pluginVersion = "2.0.1"
+val pluginVersion = "2.1.0"
 
 group = "com.github.suusan2go.kotlin-fill-class"
 version = pluginVersion
@@ -42,7 +43,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.2.1")
+        intellijIdea("2025.3.1.1")
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         instrumentationTools()

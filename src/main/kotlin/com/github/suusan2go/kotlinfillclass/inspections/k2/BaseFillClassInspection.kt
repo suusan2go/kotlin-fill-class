@@ -35,7 +35,7 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolModality
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbolOrigin
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
-import org.jetbrains.kotlin.analysis.api.types.KtFunctionalType
+import org.jetbrains.kotlin.analysis.api.types.KaFunctionType
 import org.jetbrains.kotlin.analysis.api.types.symbol
 import org.jetbrains.kotlin.idea.base.codeInsight.ShortenReferencesFacility
 import org.jetbrains.kotlin.idea.codeinsight.api.applicable.inspections.KotlinApplicableInspectionBase
@@ -112,8 +112,7 @@ abstract class BaseFillClassInspection(
 
     override fun getApplicableRanges(element: KtValueArgumentList): List<TextRange> = ApplicabilityRange.self(element)
 
-    context(KaSession)
-    override fun prepareContext(element: KtValueArgumentList): Context? {
+    override fun KaSession.prepareContext(element: KtValueArgumentList): Context? {
         if (!K2SupportHelper.isK2PluginEnabled()) return null
         val callElement = element.parent as? KtCallElement ?: return null
         return callElement.findCandidates().takeIf { it.isNotEmpty() }?.let {
@@ -324,7 +323,7 @@ abstract class BaseFillClassInspection(
 
         val lastIndex = parameters.size - 1
         return parameters.mapIndexedNotNull { index, parameter ->
-            if (lambdaArgument != null && index == lastIndex && parameter.returnType is KtFunctionalType) return@mapIndexedNotNull null
+            if (lambdaArgument != null && index == lastIndex && parameter.returnType is KaFunctionType) return@mapIndexedNotNull null
             if (arguments.size > index && !arguments[index].isNamed()) return@mapIndexedNotNull null
             if (parameter.name.identifier in argumentNames) return@mapIndexedNotNull null
             if (parameter.symbol.isVararg) return@mapIndexedNotNull null
