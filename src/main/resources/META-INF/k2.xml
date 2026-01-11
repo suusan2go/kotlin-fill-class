@@ -8,8 +8,8 @@
                 enabledByDefault="true"
                 level="INFORMATION"
                 language="kotlin"
-                displayName="Fill with dummy values (K2)"
-                shortName="FillDummyValuesK2"/>
+                displayName="Fill with dummy values"
+                shortName="FillDummyValues"/>
 
         <localInspection
                 implementationClass="com.github.suusan2go.kotlinfillclass.inspections.k2.FillVariablesOfSameNameInspection"
@@ -18,8 +18,8 @@
                 enabledByDefault="true"
                 level="INFORMATION"
                 language="kotlin"
-                displayName="Fill class constructor with variables of the same name (K2)"
-                shortName="FillVariablesOfSameNameK2"/>
+                displayName="Fill class constructor with variables of the same name"
+                shortName="FillVariablesOfSameName"/>
 
         <localInspection
                 implementationClass="com.github.suusan2go.kotlinfillclass.inspections.k2.FillEmptyValuesInspection"
@@ -28,7 +28,7 @@
                 enabledByDefault="true"
                 level="INFORMATION"
                 language="kotlin"
-                displayName="Fill with empty values (K2)"
-                shortName="FillEmptyValuesK2"/>
+                displayName="Fill with empty values"
+                shortName="FillEmptyValues"/>
     </extensions>
 </idea-plugin>

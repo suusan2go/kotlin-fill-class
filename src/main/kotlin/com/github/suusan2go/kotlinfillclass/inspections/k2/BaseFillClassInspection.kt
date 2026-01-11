@@ -1,12 +1,6 @@
 package com.github.suusan2go.kotlinfillclass.inspections.k2
 
-import com.github.suusan2go.kotlinfillclass.helper.K2SupportHelper
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
-import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT
-import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES
-import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITHOUT_DEFAULT_ARGUMENTS
-import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITHOUT_DEFAULT_VALUES
-import com.github.suusan2go.kotlinfillclass.inspections.BaseFillClassInspection.Companion.LABEL_WITH_TRAILING_COMMA
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.modcommand.ActionContext
@@ -91,7 +85,6 @@ abstract class BaseFillClassInspection(
     }
 
     override fun createOptionsPanel(): JComponent? {
-        if (!K2SupportHelper.isK2PluginEnabled()) return null
         val panel = MultipleCheckboxOptionsPanel(this)
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_VALUES, "withoutDefaultValues")
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
@@ -113,7 +106,6 @@ abstract class BaseFillClassInspection(
     override fun getApplicableRanges(element: KtValueArgumentList): List<TextRange> = ApplicabilityRange.self(element)
 
     override fun KaSession.prepareContext(element: KtValueArgumentList): Context? {
-        if (!K2SupportHelper.isK2PluginEnabled()) return null
         val callElement = element.parent as? KtCallElement ?: return null
         return callElement.findCandidates().takeIf { it.isNotEmpty() }?.let {
             Context(
@@ -414,5 +406,12 @@ abstract class BaseFillClassInspection(
     private fun KtDotQualifiedExpression.deleteQualifier(): KtExpression? {
         val selectorExpression = selectorExpression ?: return null
         return this.replace(selectorExpression) as KtExpression
+    }
+    companion object {
+        const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill with default values"
+        const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill default arguments"
+        const val LABEL_WITH_TRAILING_COMMA = "Append trailing comma"
+        const val LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES = "Put arguments on separate lines"
+        const val LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT = "Move pointer to every argument"
     }
 }
