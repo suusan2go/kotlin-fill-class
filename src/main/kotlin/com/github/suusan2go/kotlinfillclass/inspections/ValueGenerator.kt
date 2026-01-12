@@ -5,12 +5,11 @@ import com.thedeanda.lorem.LoremIpsum
 object ValueGenerator {
     private var staticNum = 0
 
-    internal fun randomNumFor(paramName: String): Int {
-        return when {
+    internal fun randomNumFor(paramName: String): Int =
+        when {
             paramName.contains("year", ignoreCase = true) -> (1980..2023).random()
             else -> (1111..9999).random()
         }
-    }
 
     internal fun randomStringFor(_paramName: String): String {
         val lorem = LoremIpsum.getInstance()
@@ -39,7 +38,5 @@ object ValueGenerator {
 
     fun getRandomNumber() = staticNum++
 
-    fun getRandomChar(): Char {
-        return ('A'..'Z').random()
-    }
+    fun getRandomChar(): Char = ('A'..'Z').random()
 }

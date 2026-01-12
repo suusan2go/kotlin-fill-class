@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    val kotlinVersion = "2.0.20"
+    val kotlinVersion = "2.3.0"
     repositories {
         mavenCentral()
     }
@@ -16,9 +16,9 @@ buildscript {
 
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.1.0"
-    id("org.jetbrains.kotlin.jvm") version "2.0.20"
-    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
+    id("org.jetbrains.intellij.platform") version "2.10.5"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.0.1"
     id("jvm-test-suite")
 }
 
@@ -27,7 +27,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-val pluginVersion = "2.0.1"
+val pluginVersion = "2.1.0"
 
 group = "com.github.suusan2go.kotlin-fill-class"
 version = pluginVersion
@@ -42,10 +42,9 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.2.1")
+        intellijIdea("2025.3.1.1")
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
-        instrumentationTools()
         testFramework(TestFrameworkType.Platform)
         pluginVerifier()
     }
@@ -57,8 +56,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.13.13")
-    testImplementation("com.intellij.platform:kotlinx-coroutines-core-jvm:1.8.0-intellij-9")
+    testImplementation("io.mockk:mockk:1.13.13") {
+        exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core")
+        exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core-jvm")
+    }
+    testImplementation("org.assertj:assertj-core:3.26.3")
+    testImplementation("com.intellij.platform:kotlinx-coroutines-core-jvm:1.10.1-intellij-5")
 }
 
 tasks.named<KotlinCompile>("compileKotlin") {
@@ -71,18 +74,6 @@ tasks.named<KotlinCompile>("compileTestKotlin") {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
-    if (System.getProperty("idea.kotlin.plugin.use.k2") == "true") {
-        include("com/github/suusan2go/kotlinfillclass/inspections/k2/**/*")
-        systemProperty("idea.kotlin.plugin.use.k2", true)
-    } else {
-        exclude("com/github/suusan2go/kotlinfillclass/inspections/k2/**/*")
-    }
-}
-
-val runK2 by intellijPlatformTesting.runIde.creating {
-    task {
-        systemProperty("idea.kotlin.plugin.use.k2", true)
-    }
 }
 
 kotlin {
@@ -103,16 +94,16 @@ intellijPlatform {
         version = pluginVersion
         name = "kotlin-fill-class"
         ideaVersion {
-            sinceBuild = "242"
+            sinceBuild = "253"
             untilBuild = provider { null }
         }
     }
     pluginVerification {
         ides {
             select {
-                types = listOf(IntelliJPlatformType.IntellijIdeaCommunity)
+                types = listOf(IntelliJPlatformType.IntellijIdea)
                 channels = listOf(ProductRelease.Channel.RELEASE)
-                sinceBuild = "2024.2.1"
+                sinceBuild = "2025.3.1"
             }
         }
     }

@@ -9,8 +9,8 @@ class FillVariablesOfSameNameInspection : BaseFillClassInspection() {
 
     override fun getFunctionPromptDescription(): String = "Fill class constructor with variables of the same name"
 
-    context(KaSession)
-    override fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String? {
-        return signature.name.asString()
-    }
+    override fun fillValue(
+        session: KaSession,
+        signature: KaVariableSignature<KaValueParameterSymbol>,
+    ): String? = signature.name.asString()
 }
