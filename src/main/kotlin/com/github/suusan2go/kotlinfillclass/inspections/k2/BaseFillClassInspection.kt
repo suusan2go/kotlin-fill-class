@@ -119,18 +119,18 @@ abstract class BaseFillClassInspection(
                 candidateLabels =
                     it.map { call ->
                         callElement.calleeExpression?.text + (
-                                call.symbol.psi
-                                    ?.getChildOfType<KtParameterList>()
-                                    ?.text
-                                    ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
-                                        prefix = "(",
-                                        postfix = ")",
-                                        separator = ", ",
-                                        transform = { sig ->
-                                            "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}"
-                                        },
-                                    )
+                            call.symbol.psi
+                                ?.getChildOfType<KtParameterList>()
+                                ?.text
+                                ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
+                                    prefix = "(",
+                                    postfix = ")",
+                                    separator = ", ",
+                                    transform = { sig ->
+                                        "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}"
+                                    },
                                 )
+                        )
                     },
                 candidates = it.map { call -> call.partiallyAppliedSymbol.signature.valueParameters },
                 isConstructor = it[0].symbol is KaConstructorSymbol,
@@ -152,15 +152,15 @@ abstract class BaseFillClassInspection(
                     .mapNotNull { it as? KaFunctionCall<*> }
                     .filter { ktCall ->
                         ktCall.symbol.origin !in
-                                listOf(
-                                    KaSymbolOrigin.JAVA_SOURCE,
-                                    KaSymbolOrigin.JAVA_LIBRARY,
-                                    KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
-                                    KaSymbolOrigin.JS_DYNAMIC,
-                                ) &&
-                                ktCall.partiallyAppliedSymbol.signature.valueParameters
-                                    .filterNot { it.symbol.isVararg }
-                                    .size > argumentSize
+                            listOf(
+                                KaSymbolOrigin.JAVA_SOURCE,
+                                KaSymbolOrigin.JAVA_LIBRARY,
+                                KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
+                                KaSymbolOrigin.JS_DYNAMIC,
+                            ) &&
+                            ktCall.partiallyAppliedSymbol.signature.valueParameters
+                                .filterNot { it.symbol.isVararg }
+                                .size > argumentSize
                     }
             return candidates
         }
@@ -229,15 +229,14 @@ abstract class BaseFillClassInspection(
         override fun perform(
             context: ActionContext,
             element: KtValueArgumentList,
-        ) : ModCommand {
-            return ModCommand.psiUpdate(element) { _: KtValueArgumentList, updater: ModPsiUpdater ->
+        ): ModCommand =
+            ModCommand.psiUpdate(element) { _: KtValueArgumentList, updater: ModPsiUpdater ->
                 applyFillArgumentsFix(
                     updater,
                     element,
-                    candidateIndex
+                    candidateIndex,
                 )
             }
-        }
     }
 
     private fun applyFillArgumentsFix(
@@ -270,8 +269,7 @@ abstract class BaseFillClassInspection(
     private inner class FillArgumentFix(
         val context: Context,
     ) : KotlinModCommandQuickFix<KtValueArgumentList>() {
-        override fun getFamilyName() =
-            if (context.isConstructor) getConstructorPromptDescription() else getFunctionPromptDescription()
+        override fun getFamilyName() = if (context.isConstructor) getConstructorPromptDescription() else getFunctionPromptDescription()
 
         override fun applyFix(
             project: Project,
@@ -440,7 +438,7 @@ abstract class BaseFillClassInspection(
     private fun isPreviewSession(): Boolean =
         Throwable().stackTrace.any {
             it.className == "com.intellij.modcommand.ModCommandQuickFix" &&
-                    it.methodName == "generatePreview"
+                it.methodName == "generatePreview"
         }
 
     private fun KtDotQualifiedExpression.deleteQualifier(): KtExpression? {
