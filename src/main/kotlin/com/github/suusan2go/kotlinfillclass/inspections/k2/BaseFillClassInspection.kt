@@ -1,31 +1,24 @@
 package com.github.suusan2go.kotlinfillclass.inspections.k2
 
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
-import com.github.suusan2go.kotlinfillclass.inspections.k2.BaseFillClassInspection.CoroutineScopeService.Companion.coroutineScope
+import com.intellij.codeInspection.InspectionManager
+import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
+import com.intellij.codeInspection.util.IntentionFamilyName
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
-import com.intellij.modcommand.ModCommandExecutor
+import com.intellij.modcommand.ModCommandQuickFix
 import com.intellij.modcommand.ModPsiUpdater
-import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.backgroundWriteAction
-import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.readAndBackgroundWriteAction
-import com.intellij.openapi.command.CommandProcessor
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
+import com.intellij.modcommand.Presentation
+import com.intellij.modcommand.PsiUpdateModCommandAction
 import com.intellij.openapi.editor.impl.ImaginaryEditor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.ui.popup.PopupStep
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.util.PsiEditorUtil
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -56,7 +49,6 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
-import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
@@ -71,10 +63,11 @@ abstract class BaseFillClassInspection(
     @JvmField var withTrailingComma: Boolean = false,
     @JvmField var putArgumentsOnSeparateLines: Boolean = false,
     @JvmField var movePointerToEveryArgument: Boolean = true,
-) : KotlinApplicableInspectionBase.Simple<KtValueArgumentList, BaseFillClassInspection.Context>() {
+) : KotlinApplicableInspectionBase<KtValueArgumentList, BaseFillClassInspection.Context>() {
     data class Context(
         val functionName: String,
-        val candidates: List<String>,
+        val candidateLabels: List<String>,
+        val candidates: List<List<KaVariableSignature<KaValueParameterSymbol>>>,
         val isConstructor: Boolean,
     )
 
@@ -88,16 +81,14 @@ abstract class BaseFillClassInspection(
 
     abstract fun getFunctionPromptDescription(): String
 
-    override fun getProblemDescription(
-        element: KtValueArgumentList,
-        context: Context,
-    ): String {
-        return if (context.isConstructor) {
-            getConstructorPromptDescription()
-        } else {
-            getFunctionPromptDescription()
+    private val Context.problemDescription: String
+        get() {
+            return if (isConstructor) {
+                getConstructorPromptDescription()
+            } else {
+                getFunctionPromptDescription()
+            }
         }
-    }
 
     override fun createOptionsPanel(): JComponent? {
         val panel = MultipleCheckboxOptionsPanel(this)
@@ -125,28 +116,35 @@ abstract class BaseFillClassInspection(
         return findCandidates(callElement).takeIf { it.isNotEmpty() }?.let {
             Context(
                 functionName = it[0].partiallyAppliedSymbol.signature.toString(),
-                candidates =
+                candidateLabels =
                     it.map { call ->
                         callElement.calleeExpression?.text + (
-                                call.symbol.psi?.getChildOfType<KtParameterList>()?.text
-                                    ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
-                                        prefix = "(",
-                                        postfix = ")",
-                                        separator = ", ",
-                                        transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
-                                    )
+                            call.symbol.psi
+                                ?.getChildOfType<KtParameterList>()
+                                ?.text
+                                ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
+                                    prefix = "(",
+                                    postfix = ")",
+                                    separator = ", ",
+                                    transform = { sig ->
+                                        "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}"
+                                    },
                                 )
+                        )
                     },
+                candidates = it.map { call -> call.partiallyAppliedSymbol.signature.valueParameters },
                 isConstructor = it[0].symbol is KaConstructorSymbol,
             )
         }
     }
 
-    private fun KaSession.findCandidates(callElement: KtCallElement): List<KaFunctionCall<*>> {
-        return findCandidates(callElement, callElement.valueArguments.size)
-    }
+    private fun KaSession.findCandidates(callElement: KtCallElement): List<KaFunctionCall<*>> =
+        findCandidates(callElement, callElement.valueArguments.size)
 
-    private fun KaSession.findCandidates(element: KtElement, argumentSize: Int): List<KaFunctionCall<*>> {
+    private fun KaSession.findCandidates(
+        element: KtElement,
+        argumentSize: Int,
+    ): List<KaFunctionCall<*>> {
         val resolvedCall = element.resolveToCall()
         if (resolvedCall is KaErrorCallInfo) {
             val candidates =
@@ -154,120 +152,132 @@ abstract class BaseFillClassInspection(
                     .mapNotNull { it as? KaFunctionCall<*> }
                     .filter { ktCall ->
                         ktCall.symbol.origin !in
-                                listOf(
-                                    KaSymbolOrigin.JAVA_SOURCE,
-                                    KaSymbolOrigin.JAVA_LIBRARY,
-                                    KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
-                                    KaSymbolOrigin.JS_DYNAMIC,
-                                ) && ktCall.partiallyAppliedSymbol.signature.valueParameters
-                            .filterNot { it.symbol.isVararg }.size > argumentSize
+                            listOf(
+                                KaSymbolOrigin.JAVA_SOURCE,
+                                KaSymbolOrigin.JAVA_LIBRARY,
+                                KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
+                                KaSymbolOrigin.JS_DYNAMIC,
+                            ) &&
+                            ktCall.partiallyAppliedSymbol.signature.valueParameters
+                                .filterNot { it.symbol.isVararg }
+                                .size > argumentSize
                     }
             return candidates
         }
         return emptyList()
     }
 
-    override fun isApplicableByPsi(element: KtValueArgumentList): Boolean {
-        return true
-    }
+    override fun isApplicableByPsi(element: KtValueArgumentList): Boolean = true
 
-    override fun createQuickFix(
+    override fun InspectionManager.createProblemDescriptor(
         element: KtValueArgumentList,
         context: Context,
-    ) = object : KotlinModCommandQuickFix<KtValueArgumentList>() {
-        override fun getFamilyName() =
-            if (context.isConstructor) {
-                getConstructorPromptDescription()
+        rangeInElement: TextRange?,
+        onTheFly: Boolean,
+    ): ProblemDescriptor {
+        val targetFix =
+            if (context.candidateLabels.size == 1 || isPreviewSession()) {
+                FillArgumentFix(context)
             } else {
-                getFunctionPromptDescription()
+                ShowOptionsFix(
+                    pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(element),
+                    context = context,
+                )
             }
+        return createProblemDescriptor(
+            element,
+            rangeInElement,
+            context.problemDescription,
+            ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+            onTheFly,
+            targetFix,
+        )
+    }
+
+    private inner class ShowOptionsFix(
+        val pointer: SmartPsiElementPointer<KtValueArgumentList>,
+        val context: Context,
+    ) : ModCommandQuickFix() {
+        override fun getFamilyName(): @IntentionFamilyName String = context.problemDescription
+
+        override fun perform(
+            project: Project,
+            descriptor: ProblemDescriptor,
+        ): ModCommand {
+            val element = pointer.element ?: return ModCommand.nop()
+            val subActions =
+                context.candidateLabels.mapIndexed { index, _ ->
+                    FillArgumentsAction(element, index, context)
+                }
+            // 選択ダイアログ (リスト) を表示するコマンドを返す
+            return ModCommand.chooseAction("Choose Function", subActions)
+        }
+    }
+
+    @Suppress("UnstableApiUsage")
+    private inner class FillArgumentsAction(
+        element: KtValueArgumentList,
+        private val candidateIndex: Int,
+        private val inspectionContext: Context,
+    ) : PsiUpdateModCommandAction<KtValueArgumentList>(element) {
+        override fun getFamilyName(): @IntentionFamilyName String = inspectionContext.problemDescription
+
+        override fun getPresentation(
+            context: ActionContext,
+            element: KtValueArgumentList,
+        ): Presentation = Presentation.of(inspectionContext.candidateLabels[candidateIndex])
+
+        override fun invoke(
+            context: ActionContext,
+            element: KtValueArgumentList,
+            updater: ModPsiUpdater,
+        ) {
+            applyFillArgumentsFix(updater, element, candidateIndex)
+        }
+    }
+
+    private fun applyFillArgumentsFix(
+        updater: ModPsiUpdater,
+        element: KtValueArgumentList,
+        candidateIndex: Int,
+    ) {
+        val call = element.parent as? KtCallElement ?: return
+        val lambdaArgument = call.lambdaArguments.singleOrNull()
+        val parameters =
+            allowAnalysisOnEdt {
+                analyze(element) {
+                    val candidates = findCandidates(call)
+                    if (candidateIndex < candidates.size) {
+                        createArguments(
+                            element = element,
+                            lambdaArgument = lambdaArgument,
+                            parameters = candidates[candidateIndex].partiallyAppliedSymbol.signature.valueParameters,
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+        if (parameters != null) {
+            element.fillArgumentsAndFormat(parameters, updater)
+        }
+    }
+
+    private inner class FillArgumentFix(
+        val context: Context,
+    ) : KotlinModCommandQuickFix<KtValueArgumentList>() {
+        override fun getFamilyName() = if (context.isConstructor) getConstructorPromptDescription() else getFunctionPromptDescription()
 
         override fun applyFix(
             project: Project,
             element: KtValueArgumentList,
             updater: ModPsiUpdater,
         ) {
-            val call = element.parent as? KtCallElement ?: return
-            val lambdaArgument = call.lambdaArguments.singleOrNull()
-            if (context.candidates.size == 1 || isPreviewSession()) {
-                val parameters = allowAnalysisOnEdt {
-                    analyze(element) {
-                        val candidates = findCandidates(call)
-                        createArguments(
-                            element = element,
-                            lambdaArgument = lambdaArgument,
-                            parameters = candidates.first().partiallyAppliedSymbol.signature.valueParameters,
-                        )
-                    }
-                }
-                element.fillArgumentsAndFormat(
-                    parameters = parameters,
-                    updater = updater,
-                )
-            } else {
-                val listPopup = createListPopup(context, element, lambdaArgument, project)
-                invokeLater {
-                    JBPopupFactory.getInstance().createListPopup(listPopup).showInFocusCenter()
-                }
-            }
-        }
-    }
-
-    private fun createListPopup(
-        context: Context,
-        argumentList: KtValueArgumentList,
-        lambdaArgument: KtLambdaArgument?,
-        project: Project,
-    ): BaseListPopupStep<String> {
-        val functionIndexes =
-            context.candidates
-                .mapIndexed { index, valueParams -> valueParams to index }
-                .sortedBy { it.first.length }
-                .toMap()
-
-        return object : BaseListPopupStep<String>("Choose Function", functionIndexes.keys.toList()) {
-            override fun isAutoSelectionEnabled() = false
-
-            override fun onChosen(
-                selectedValue: String,
-                finalChoice: Boolean,
-            ): PopupStep<*>? {
-                if (finalChoice) {
-                    return doFinalStep {
-                        val parameters = allowAnalysisOnEdt {
-                            analyze(argumentList) {
-                                val call = argumentList.parent as? KtCallElement ?: return@analyze null
-                                val index = functionIndexes[selectedValue] ?: return@analyze null
-                                val candidates = findCandidates(call)
-                                if (index >= candidates.size) return@analyze null
-                                createArguments(
-                                    element = argumentList,
-                                    lambdaArgument = lambdaArgument,
-                                    parameters = candidates[index].partiallyAppliedSymbol.signature.valueParameters,
-                                )
-                            }
-                        } ?: return@doFinalStep
-                        project.coroutineScope.launch(Dispatchers.EDT) {
-                            val editor = PsiEditorUtil.findEditor(argumentList)
-                            val ac = ActionContext.from(editor, argumentList.containingFile.originalFile)
-                            val modCommand = ModCommand.psiUpdate(ac) { eu ->
-                                val e = eu.getWritable(argumentList)
-                                e.fillArgumentsAndFormat(parameters, eu)
-                            }
-                            CommandProcessor.getInstance().executeCommand(
-                                project,
-                                {
-                                    ModCommandExecutor.getInstance().executeInteractively(ac, modCommand, editor)
-                                },
-                                "",
-                                null,
-                            )
-                        }
-                    }
-                }
-
-                return PopupStep.FINAL_CHOICE
-            }
+            applyFillArgumentsFix(
+                updater,
+                element,
+                0,
+            )
         }
     }
 
@@ -278,10 +288,17 @@ abstract class BaseFillClassInspection(
         val document = containingFile.viewProvider.document
         val argumentSize = arguments.size
         val factory = KtPsiFactory(this.project)
-        val newArguments = parameters.map { info ->
-            val expression = info.value?.let { factory.createExpression(it) }
-            factory.createArgument(expression, info.name?.let { org.jetbrains.kotlin.name.Name.identifier(it) })
-        }
+        val newArguments =
+            parameters.map { info ->
+                val expression = info.value?.let { factory.createExpression(it) }
+                factory.createArgument(
+                    expression,
+                    info.name?.let {
+                        org.jetbrains.kotlin.name.Name
+                            .identifier(it)
+                    },
+                )
+            }
 
         for (newArgument in newArguments) {
             addArgument(newArgument)
@@ -366,22 +383,29 @@ abstract class BaseFillClassInspection(
                 returnType.symbol?.classId?.asFqNameString()
                     ?: return ParameterInfo(parameter.name.identifier, null)
 
-            val argumentValue = if (returnType.symbol?.psi is KtObjectDeclaration) {
-                fqName
-            } else {
-                "$fqName()"
-            }
-            return ParameterInfo(parameter.name.identifier, argumentValue, returnType.symbol?.psi is KtObjectDeclaration)
+            val argumentValue =
+                if (returnType.symbol?.psi is KtObjectDeclaration) {
+                    fqName
+                } else {
+                    "$fqName()"
+                }
+            return ParameterInfo(
+                parameter.name.identifier,
+                argumentValue,
+                returnType.symbol?.psi is KtObjectDeclaration,
+            )
         }
     }
 
-    abstract fun fillValue(session: KaSession, signature: KaVariableSignature<KaValueParameterSymbol>): String?
+    abstract fun fillValue(
+        session: KaSession,
+        signature: KaVariableSignature<KaValueParameterSymbol>,
+    ): String?
 
-    private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
-        return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
+    private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> =
+        this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
             argument.collectDescendantsOfType<T>()
         }
-    }
 
     private fun KtValueArgumentList.addTrailingCommaIfNeeded(factory: KtPsiFactory) {
         if (this.arguments.isNotEmpty() && !this.hasTrailingComma()) {
@@ -408,24 +432,15 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    private fun isPreviewSession(): Boolean {
-        return Throwable().stackTrace.any {
+    private fun isPreviewSession(): Boolean =
+        Throwable().stackTrace.any {
             it.className == "com.intellij.modcommand.ModCommandQuickFix" &&
-                    it.methodName == "generatePreview"
+                it.methodName == "generatePreview"
         }
-    }
 
     private fun KtDotQualifiedExpression.deleteQualifier(): KtExpression? {
         val selectorExpression = selectorExpression ?: return null
         return this.replace(selectorExpression) as KtExpression
-    }
-
-    @Service(Service.Level.PROJECT)
-    private class CoroutineScopeService(private val coroutineScope: CoroutineScope) {
-        companion object {
-            val Project.coroutineScope: CoroutineScope
-                get() = service<CoroutineScopeService>().coroutineScope
-        }
     }
 
     companion object {

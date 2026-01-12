@@ -19,7 +19,10 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
 
     override fun getFunctionPromptDescription(): String = "Fill function"
 
-    override fun fillValue(session: KaSession, signature: KaVariableSignature<KaValueParameterSymbol>): String? {
+    override fun fillValue(
+        session: KaSession,
+        signature: KaVariableSignature<KaValueParameterSymbol>,
+    ): String? {
         with(session) {
             val type = signature.returnType
             if (type !is KaClassType) {
@@ -31,20 +34,20 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
                 type.isDoubleType -> "0.0"
                 type.isFloatType -> "0.0f"
                 type.isIntType ||
-                        type.isLongType ||
-                        type.isShortType -> "0"
+                    type.isLongType ||
+                    type.isShortType -> "0"
 
                 type.isArrayOrPrimitiveArray -> "arrayOf()"
                 type.isNullableAnyType() -> "null"
                 type.isCharSequenceType ||
-                        type.isStringType -> "\"\""
+                    type.isStringType -> "\"\""
 
                 type.classId in
-                        listOf(
-                            StandardClassIds.List,
-                            StandardClassIds.MutableList,
-                            StandardClassIds.Collection,
-                        )
+                    listOf(
+                        StandardClassIds.List,
+                        StandardClassIds.MutableList,
+                        StandardClassIds.Collection,
+                    )
                 -> "listOf()"
 
                 type.classId in listOf(StandardClassIds.Set, StandardClassIds.MutableSet) -> "setOf()"
@@ -57,7 +60,10 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
         }
     }
 
-    private fun lambdaDefaultValue(session: KaSession, type: KaClassType): String =
+    private fun lambdaDefaultValue(
+        session: KaSession,
+        type: KaClassType,
+    ): String =
         with(session) {
             buildString {
                 append("{")
@@ -67,10 +73,11 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
                         type.typeArguments.dropLast(1).joinToString(postfix = "->") {
                             val type = it.type ?: return@joinToString ""
                             val suggester = KotlinNameSuggester()
-                            val name = KotlinNameSuggester.suggestNameByName(
-                                suggester.suggestTypeNames(type).first(),
-                                validator
-                            )
+                            val name =
+                                KotlinNameSuggester.suggestNameByName(
+                                    suggester.suggestTypeNames(type).first(),
+                                    validator,
+                                )
                             validator.addName(name)
                             val typeText = (type as? KaClassType)?.classId?.asFqNameString()
                             val nullable = if (type.isMarkedNullable) "?" else ""
@@ -84,7 +91,15 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
 
     private fun KaClassType.firstEnumValueOrNull(): String? {
         val psi = symbol.psi ?: return null
-        return (psi as? KtClass)?.declarations?.firstOrNull()?.kotlinFqName?.asString() // Kotlin Enum
-            ?: psi.getChildrenOfType<PsiEnumConstant>().firstOrNull()?.kotlinFqName?.asString() // Java Enum
+        return (psi as? KtClass)
+            ?.declarations
+            ?.firstOrNull()
+            ?.kotlinFqName
+            ?.asString() // Kotlin Enum
+            ?: psi
+                .getChildrenOfType<PsiEnumConstant>()
+                .firstOrNull()
+                ?.kotlinFqName
+                ?.asString() // Java Enum
     }
 }

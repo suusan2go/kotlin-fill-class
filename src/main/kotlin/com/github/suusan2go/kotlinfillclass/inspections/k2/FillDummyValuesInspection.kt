@@ -11,7 +11,10 @@ class FillDummyValuesInspection : FillEmptyValuesInspection() {
 
     override fun getFunctionPromptDescription(): String = "Fill function with dummy values"
 
-    override fun fillValue(session: KaSession, signature: KaVariableSignature<KaValueParameterSymbol>): String? {
+    override fun fillValue(
+        session: KaSession,
+        signature: KaVariableSignature<KaValueParameterSymbol>,
+    ): String? {
         with(session) {
             val type = signature.returnType
             val paramName = signature.name.asString()
@@ -23,10 +26,10 @@ class FillDummyValuesInspection : FillEmptyValuesInspection() {
                 type.isDoubleType -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}"
                 type.isFloatType -> "${ValueGenerator.getRandomNumber()}.${ValueGenerator.getRandomNumber()}f"
                 type.isIntType ||
-                        type.isLongType ||
-                        type.isShortType -> "${ValueGenerator.randomNumFor(paramName)}"
+                    type.isLongType ||
+                    type.isShortType -> "${ValueGenerator.randomNumFor(paramName)}"
                 type.isCharSequenceType ||
-                        type.isStringType -> "\"${ValueGenerator.randomStringFor(paramName)}\""
+                    type.isStringType -> "\"${ValueGenerator.randomStringFor(paramName)}\""
                 else -> super@FillDummyValuesInspection.fillValue(session, signature)
             }
         }
