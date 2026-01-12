@@ -1,14 +1,20 @@
 package com.github.suusan2go.kotlinfillclass.inspections.k2
 
 import com.github.suusan2go.kotlinfillclass.helper.PutArgumentOnSeparateLineHelper
+import com.github.suusan2go.kotlinfillclass.inspections.k2.BaseFillClassInspection.CoroutineScopeService.Companion.coroutineScope
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.codeInspection.ui.MultipleCheckboxOptionsPanel
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.ModCommandExecutor
 import com.intellij.modcommand.ModPsiUpdater
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.backgroundWriteAction
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.readAndBackgroundWriteAction
 import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.impl.ImaginaryEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -17,6 +23,9 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.util.PsiEditorUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -69,6 +78,12 @@ abstract class BaseFillClassInspection(
         val isConstructor: Boolean,
     )
 
+    data class ParameterInfo(
+        val name: String?,
+        val value: String?,
+        val isObject: Boolean = false,
+    )
+
     abstract fun getConstructorPromptDescription(): String
 
     abstract fun getFunctionPromptDescription(): String
@@ -107,47 +122,45 @@ abstract class BaseFillClassInspection(
 
     override fun KaSession.prepareContext(element: KtValueArgumentList): Context? {
         val callElement = element.parent as? KtCallElement ?: return null
-        return callElement.findCandidates().takeIf { it.isNotEmpty() }?.let {
+        return findCandidates(callElement).takeIf { it.isNotEmpty() }?.let {
             Context(
                 functionName = it[0].partiallyAppliedSymbol.signature.toString(),
                 candidates =
                     it.map { call ->
                         callElement.calleeExpression?.text + (
-                            call.symbol.psi?.getChildOfType<KtParameterList>()?.text
-                                ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
-                                    prefix = "(",
-                                    postfix = ")",
-                                    separator = ", ",
-                                    transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
+                                call.symbol.psi?.getChildOfType<KtParameterList>()?.text
+                                    ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
+                                        prefix = "(",
+                                        postfix = ")",
+                                        separator = ", ",
+                                        transform = { sig -> "${sig.name.identifier}: ${sig.returnType.symbol?.classId?.asFqNameString()}" },
+                                    )
                                 )
-                        )
                     },
                 isConstructor = it[0].symbol is KaConstructorSymbol,
             )
         }
     }
 
-    context(KaSession)
-    private fun KtCallElement.findCandidates(): List<KaFunctionCall<*>> {
-        return findCandidates(valueArguments.size)
+    private fun KaSession.findCandidates(callElement: KtCallElement): List<KaFunctionCall<*>> {
+        return findCandidates(callElement, callElement.valueArguments.size)
     }
 
-    context(KaSession)
-    private fun KtElement.findCandidates(argumentSize: Int): List<KaFunctionCall<*>> {
-        val resolvedCall = resolveToCall()
+    private fun KaSession.findCandidates(element: KtElement, argumentSize: Int): List<KaFunctionCall<*>> {
+        val resolvedCall = element.resolveToCall()
         if (resolvedCall is KaErrorCallInfo) {
             val candidates =
                 resolvedCall.candidateCalls
                     .mapNotNull { it as? KaFunctionCall<*> }
                     .filter { ktCall ->
                         ktCall.symbol.origin !in
-                            listOf(
-                                KaSymbolOrigin.JAVA_SOURCE,
-                                KaSymbolOrigin.JAVA_LIBRARY,
-                                KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
-                                KaSymbolOrigin.JS_DYNAMIC,
-                            ) && ktCall.partiallyAppliedSymbol.signature.valueParameters
-                                .filterNot { it.symbol.isVararg }.size > argumentSize
+                                listOf(
+                                    KaSymbolOrigin.JAVA_SOURCE,
+                                    KaSymbolOrigin.JAVA_LIBRARY,
+                                    KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
+                                    KaSymbolOrigin.JS_DYNAMIC,
+                                ) && ktCall.partiallyAppliedSymbol.signature.valueParameters
+                            .filterNot { it.symbol.isVararg }.size > argumentSize
                     }
             return candidates
         }
@@ -177,16 +190,20 @@ abstract class BaseFillClassInspection(
             val call = element.parent as? KtCallElement ?: return
             val lambdaArgument = call.lambdaArguments.singleOrNull()
             if (context.candidates.size == 1 || isPreviewSession()) {
-                allowAnalysisOnEdt {
+                val parameters = allowAnalysisOnEdt {
                     analyze(element) {
-                        val candidates = call.findCandidates()
-                        element.fillArgumentsAndFormat(
-                            ktCall = candidates.first(),
-                            updater = updater,
+                        val candidates = findCandidates(call)
+                        createArguments(
+                            element = element,
                             lambdaArgument = lambdaArgument,
+                            parameters = candidates.first().partiallyAppliedSymbol.signature.valueParameters,
                         )
                     }
                 }
+                element.fillArgumentsAndFormat(
+                    parameters = parameters,
+                    updater = updater,
+                )
             } else {
                 val listPopup = createListPopup(context, element, lambdaArgument, project)
                 invokeLater {
@@ -217,23 +234,34 @@ abstract class BaseFillClassInspection(
             ): PopupStep<*>? {
                 if (finalChoice) {
                     return doFinalStep {
-                        val editor = PsiEditorUtil.findEditor(argumentList)
-                        val ac = ActionContext.from(editor, argumentList.containingFile)
-                        allowAnalysisOnEdt {
+                        val parameters = allowAnalysisOnEdt {
                             analyze(argumentList) {
-                                val modCommand =
-                                    ModCommand.psiUpdate(ac) { eu ->
-                                        val e = eu.getWritable(argumentList)
-                                        val call = e.parent as? KtCallElement ?: return@psiUpdate
-                                        val index = functionIndexes[selectedValue] ?: return@psiUpdate
-                                        val parameters = call.findCandidates()[index]
-                                        e.fillArgumentsAndFormat(parameters, eu, lambdaArgument)
-                                    }
-
-                                CommandProcessor.getInstance().executeCommand(project, {
-                                    ModCommandExecutor.getInstance().executeInteractively(ac, modCommand, editor)
-                                }, "", null)
+                                val call = argumentList.parent as? KtCallElement ?: return@analyze null
+                                val index = functionIndexes[selectedValue] ?: return@analyze null
+                                val candidates = findCandidates(call)
+                                if (index >= candidates.size) return@analyze null
+                                createArguments(
+                                    element = argumentList,
+                                    lambdaArgument = lambdaArgument,
+                                    parameters = candidates[index].partiallyAppliedSymbol.signature.valueParameters,
+                                )
                             }
+                        } ?: return@doFinalStep
+                        project.coroutineScope.launch(Dispatchers.EDT) {
+                            val editor = PsiEditorUtil.findEditor(argumentList)
+                            val ac = ActionContext.from(editor, argumentList.containingFile.originalFile)
+                            val modCommand = ModCommand.psiUpdate(ac) { eu ->
+                                val e = eu.getWritable(argumentList)
+                                e.fillArgumentsAndFormat(parameters, eu)
+                            }
+                            CommandProcessor.getInstance().executeCommand(
+                                project,
+                                {
+                                    ModCommandExecutor.getInstance().executeInteractively(ac, modCommand, editor)
+                                },
+                                "",
+                                null,
+                            )
                         }
                     }
                 }
@@ -243,25 +271,17 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    context(KaSession)
     private fun KtValueArgumentList.fillArgumentsAndFormat(
-        ktCall: KaFunctionCall<*>,
+        parameters: List<ParameterInfo>,
         updater: ModPsiUpdater?,
-        lambdaArgument: KtLambdaArgument?,
-    ) {
-        fillArgumentsAndFormat(ktCall.partiallyAppliedSymbol.signature.valueParameters, updater, lambdaArgument)
-    }
-
-    context(KaSession)
-    private fun KtValueArgumentList.fillArgumentsAndFormat(
-        parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
-        updater: ModPsiUpdater?,
-        lambdaArgument: KtLambdaArgument? = null,
     ) {
         val document = containingFile.viewProvider.document
         val argumentSize = arguments.size
         val factory = KtPsiFactory(this.project)
-        val newArguments = createArguments(factory, parameters, lambdaArgument)
+        val newArguments = parameters.map { info ->
+            val expression = info.value?.let { factory.createExpression(it) }
+            factory.createArgument(expression, info.name?.let { org.jetbrains.kotlin.name.Name.identifier(it) })
+        }
 
         for (newArgument in newArguments) {
             addArgument(newArgument)
@@ -304,13 +324,12 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    context(KaSession)
-    private fun KtValueArgumentList.createArguments(
-        factory: KtPsiFactory,
-        parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
+    private fun KaSession.createArguments(
+        element: KtValueArgumentList,
         lambdaArgument: KtLambdaArgument? = null,
-    ): List<KtValueArgument> {
-        val arguments = this.arguments
+        parameters: List<KaVariableSignature<KaValueParameterSymbol>>,
+    ): List<ParameterInfo> {
+        val arguments = element.arguments
         val argumentNames = arguments.mapNotNull { it.getArgumentName()?.asName?.identifier }
 
         val lastIndex = parameters.size - 1
@@ -320,50 +339,43 @@ abstract class BaseFillClassInspection(
             if (parameter.name.identifier in argumentNames) return@mapIndexedNotNull null
             if (parameter.symbol.isVararg) return@mapIndexedNotNull null
             if (withoutDefaultArguments && parameter.symbol.hasDefaultValue) return@mapIndexedNotNull null
-            createDefaultValueArgument(parameter, factory)
+            createParameterInfo(this, parameter)
         }
     }
 
-    context(KaSession)
-    private fun createDefaultValueArgument(
+    private fun createParameterInfo(
+        session: KaSession,
         parameter: KaVariableSignature<KaValueParameterSymbol>,
-        factory: KtPsiFactory,
-    ): KtValueArgument {
+    ): ParameterInfo {
         if (withoutDefaultValues) {
-            return factory.createArgument(null, parameter.name)
+            return ParameterInfo(parameter.name.identifier, null)
         }
-        val value = fillValue(parameter)
+        val value = fillValue(session, parameter)
         if (value != null) {
-            return factory.createArgument(factory.createExpression(value), parameter.name)
+            return ParameterInfo(parameter.name.identifier, value)
         }
 
-        val returnType = parameter.returnType
-        if (returnType.isEnum() ||
-            returnType.symbol?.modality in listOf(KaSymbolModality.ABSTRACT, KaSymbolModality.SEALED)
-        ) {
-            return factory.createArgument(null, parameter.name)
+        with(session) {
+            val returnType = parameter.returnType
+            if (returnType.isEnum() ||
+                returnType.symbol?.modality in listOf(KaSymbolModality.ABSTRACT, KaSymbolModality.SEALED)
+            ) {
+                return ParameterInfo(parameter.name.identifier, null)
+            }
+            val fqName =
+                returnType.symbol?.classId?.asFqNameString()
+                    ?: return ParameterInfo(parameter.name.identifier, null)
+
+            val argumentValue = if (returnType.symbol?.psi is KtObjectDeclaration) {
+                fqName
+            } else {
+                "$fqName()"
+            }
+            return ParameterInfo(parameter.name.identifier, argumentValue, returnType.symbol?.psi is KtObjectDeclaration)
         }
-        val fqName =
-            returnType.symbol?.classId?.asFqNameString()
-                ?: return factory.createArgument(null, parameter.name)
-        var argumentExpression: KtExpression? = null
-        if (returnType.symbol?.psi is KtObjectDeclaration) {
-            argumentExpression = factory.createExpression(fqName)
-        } else {
-            // FIXME: Fill constructor
-//            argumentExpression = factory.createExpression("${fqName}()").apply {
-//                val resolvedCall = findCandidates(0).firstOrNull()
-//                if (resolvedCall != null) {
-//                    findDescendantOfType<KtValueArgumentList> { true }?.fillArgumentsAndFormat(resolvedCall, null, null)
-//                }
-//            }
-            argumentExpression = factory.createExpression("$fqName()")
-        }
-        return factory.createArgument(argumentExpression, parameter.name)
     }
 
-    context(KaSession)
-    protected abstract fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String?
+    abstract fun fillValue(session: KaSession, signature: KaVariableSignature<KaValueParameterSymbol>): String?
 
     private inline fun <reified T : KtElement> KtValueArgumentList.findElementsInArgsByType(argStartOffset: Int): List<T> {
         return this.arguments.subList(argStartOffset, this.arguments.size).flatMap { argument ->
@@ -399,7 +411,7 @@ abstract class BaseFillClassInspection(
     private fun isPreviewSession(): Boolean {
         return Throwable().stackTrace.any {
             it.className == "com.intellij.modcommand.ModCommandQuickFix" &&
-                it.methodName == "generatePreview"
+                    it.methodName == "generatePreview"
         }
     }
 
@@ -407,6 +419,15 @@ abstract class BaseFillClassInspection(
         val selectorExpression = selectorExpression ?: return null
         return this.replace(selectorExpression) as KtExpression
     }
+
+    @Service(Service.Level.PROJECT)
+    private class CoroutineScopeService(private val coroutineScope: CoroutineScope) {
+        companion object {
+            val Project.coroutineScope: CoroutineScope
+                get() = service<CoroutineScopeService>().coroutineScope
+        }
+    }
+
     companion object {
         const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill with default values"
         const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill default arguments"

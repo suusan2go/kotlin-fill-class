@@ -19,62 +19,67 @@ open class FillEmptyValuesInspection : BaseFillClassInspection() {
 
     override fun getFunctionPromptDescription(): String = "Fill function"
 
-    context(KaSession)
-    override fun fillValue(signature: KaVariableSignature<KaValueParameterSymbol>): String? {
-        val type = signature.returnType
-        if (type !is KaClassType) {
-            return null
-        }
-        return when {
-            type.isBooleanType -> "false"
-            type.isCharType -> "''"
-            type.isDoubleType -> "0.0"
-            type.isFloatType -> "0.0f"
-            type.isIntType ||
-                type.isLongType ||
-                type.isShortType -> "0"
+    override fun fillValue(session: KaSession, signature: KaVariableSignature<KaValueParameterSymbol>): String? {
+        with(session) {
+            val type = signature.returnType
+            if (type !is KaClassType) {
+                return null
+            }
+            return when {
+                type.isBooleanType -> "false"
+                type.isCharType -> "''"
+                type.isDoubleType -> "0.0"
+                type.isFloatType -> "0.0f"
+                type.isIntType ||
+                        type.isLongType ||
+                        type.isShortType -> "0"
 
-            type.isArrayOrPrimitiveArray -> "arrayOf()"
-            type.isNullableAnyType() -> "null"
-            type.isCharSequenceType ||
-                type.isStringType -> "\"\""
+                type.isArrayOrPrimitiveArray -> "arrayOf()"
+                type.isNullableAnyType() -> "null"
+                type.isCharSequenceType ||
+                        type.isStringType -> "\"\""
 
-            type.classId in
-                listOf(
-                    StandardClassIds.List,
-                    StandardClassIds.MutableList,
-                    StandardClassIds.Collection,
-                )
-            -> "listOf()"
+                type.classId in
+                        listOf(
+                            StandardClassIds.List,
+                            StandardClassIds.MutableList,
+                            StandardClassIds.Collection,
+                        )
+                -> "listOf()"
 
-            type.classId in listOf(StandardClassIds.Set, StandardClassIds.MutableSet) -> "setOf()"
-            type.classId in listOf(StandardClassIds.Map, StandardClassIds.MutableMap) -> "mapOf()"
-            type.isFunctionType -> type.lambdaDefaultValue()
-            type.isEnum() -> type.firstEnumValueOrNull()
-            type.isMarkedNullable -> "null"
-            else -> null
+                type.classId in listOf(StandardClassIds.Set, StandardClassIds.MutableSet) -> "setOf()"
+                type.classId in listOf(StandardClassIds.Map, StandardClassIds.MutableMap) -> "mapOf()"
+                type.isFunctionType -> lambdaDefaultValue(session, type)
+                type.isEnum() -> type.firstEnumValueOrNull()
+                type.isMarkedNullable -> "null"
+                else -> null
+            }
         }
     }
 
-    context(KaSession)
-    private fun KaClassType.lambdaDefaultValue(): String =
-        buildString {
-            append("{")
-            if (typeArguments.size > 2) {
-                val validator = CollectingNameValidator()
-                val lambdaParameters =
-                    typeArguments.dropLast(1).joinToString(postfix = "->") {
-                        val type = it.type ?: return@joinToString ""
-                        val suggester = KotlinNameSuggester()
-                        val name = KotlinNameSuggester.suggestNameByName(suggester.suggestTypeNames(type).first(), validator)
-                        validator.addName(name)
-                        val typeText = (type as? KaClassType)?.classId?.asFqNameString()
-                        val nullable = if (type.isMarkedNullable) "?" else ""
-                        "$name: $typeText$nullable"
-                    }
-                append(lambdaParameters)
+    private fun lambdaDefaultValue(session: KaSession, type: KaClassType): String =
+        with(session) {
+            buildString {
+                append("{")
+                if (type.typeArguments.size > 2) {
+                    val validator = CollectingNameValidator()
+                    val lambdaParameters =
+                        type.typeArguments.dropLast(1).joinToString(postfix = "->") {
+                            val type = it.type ?: return@joinToString ""
+                            val suggester = KotlinNameSuggester()
+                            val name = KotlinNameSuggester.suggestNameByName(
+                                suggester.suggestTypeNames(type).first(),
+                                validator
+                            )
+                            validator.addName(name)
+                            val typeText = (type as? KaClassType)?.classId?.asFqNameString()
+                            val nullable = if (type.isMarkedNullable) "?" else ""
+                            "$name: $typeText$nullable"
+                        }
+                    append(lambdaParameters)
+                }
+                append("}")
             }
-            append("}")
         }
 
     private fun KaClassType.firstEnumValueOrNull(): String? {

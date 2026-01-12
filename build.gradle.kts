@@ -59,6 +59,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.assertj:assertj-core:3.26.3")
     testImplementation("com.intellij.platform:kotlinx-coroutines-core-jvm:1.8.0-intellij-9")
 }
 
