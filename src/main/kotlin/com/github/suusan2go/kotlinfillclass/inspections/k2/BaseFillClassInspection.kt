@@ -12,7 +12,7 @@ import com.intellij.modcommand.ModCommand
 import com.intellij.modcommand.ModCommandQuickFix
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.Presentation
-import com.intellij.modcommand.PsiUpdateModCommandAction
+import com.intellij.modcommand.PsiBasedModCommandAction
 import com.intellij.openapi.editor.impl.ImaginaryEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
@@ -214,12 +214,11 @@ abstract class BaseFillClassInspection(
         }
     }
 
-    @Suppress("UnstableApiUsage")
     private inner class FillArgumentsAction(
         element: KtValueArgumentList,
         private val candidateIndex: Int,
         private val inspectionContext: Context,
-    ) : PsiUpdateModCommandAction<KtValueArgumentList>(element) {
+    ) : PsiBasedModCommandAction<KtValueArgumentList>(element) {
         override fun getFamilyName(): @IntentionFamilyName String = inspectionContext.problemDescription
 
         override fun getPresentation(
@@ -227,13 +226,17 @@ abstract class BaseFillClassInspection(
             element: KtValueArgumentList,
         ): Presentation = Presentation.of(inspectionContext.candidateLabels[candidateIndex])
 
-        override fun invoke(
+        override fun perform(
             context: ActionContext,
             element: KtValueArgumentList,
-            updater: ModPsiUpdater,
-        ) {
-            applyFillArgumentsFix(updater, element, candidateIndex)
-        }
+        ): ModCommand =
+            ModCommand.psiUpdate(element) { _: KtValueArgumentList, updater: ModPsiUpdater ->
+                applyFillArgumentsFix(
+                    updater,
+                    element,
+                    candidateIndex,
+                )
+            }
     }
 
     private fun applyFillArgumentsFix(
