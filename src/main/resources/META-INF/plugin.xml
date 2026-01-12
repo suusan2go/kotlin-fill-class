@@ -10,17 +10,20 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>2.0.1</h2>
+      <h2>2.1.0</h2>
       <ul>
         <li>
-          Fix IDE version range
+          Enable K2 mode on default. (related to <a href="https://github.com/suusan2go/kotlin-fill-class/issues/137">#137</a>)
+        </li>
+        <li>
+          Bumped minimum supported version to IntelliJ IDEA 2025.3.1.
         </li>
       </ul>
     ]]>
     </change-notes>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="242"/>
+    <idea-version since-build="253"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.java</depends>
