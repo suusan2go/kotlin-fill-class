@@ -16,7 +16,7 @@ buildscript {
 
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.10.5"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
     id("org.jetbrains.kotlin.jvm") version "2.3.0"
     id("org.jlleitschuh.gradle.ktlint") version "14.0.1"
     id("jvm-test-suite")
@@ -42,7 +42,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdea("2025.3.1.1")
+        intellijIdea("262.7132.23")
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         testFramework(TestFrameworkType.Platform)
@@ -77,6 +77,7 @@ tasks.named<Test>("test") {
 }
 
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-receivers")
     }
