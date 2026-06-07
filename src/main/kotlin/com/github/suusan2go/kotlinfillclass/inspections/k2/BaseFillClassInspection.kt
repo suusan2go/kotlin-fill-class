@@ -427,10 +427,15 @@ abstract class BaseFillClassInspection(
         val templateBuilder = updater.templateBuilder()
         arguments.drop(startIndex).forEach { argument ->
             val argumentExpression = argument.getArgumentExpression()
-            if (argumentExpression != null) {
-                templateBuilder.field(argumentExpression, argumentExpression.text)
-            } else {
-                templateBuilder.field(argument.lastChild, "")
+            try {
+                if (argumentExpression != null) {
+                    templateBuilder.field(argumentExpression, argumentExpression.text)
+                } else {
+                    templateBuilder.field(argument.lastChild, "")
+                }
+            } catch (_: IllegalArgumentException) {
+                // PsiUpdateImpl.getRange() in IntelliJ 2026+ rejects composite PSI nodes
+                // (STRING_TEMPLATE, DOT_QUALIFIED_EXPRESSION, etc.) as template fields; skip them
             }
         }
     }
