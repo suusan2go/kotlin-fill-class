@@ -40,15 +40,14 @@ import org.jetbrains.kotlin.idea.codeinsight.api.applicators.ApplicabilityRange
 import org.jetbrains.kotlin.idea.codeinsight.utils.isEnum
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtCallElement
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
-import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLambdaArgument
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import org.jetbrains.kotlin.psi.KtParameterList
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
@@ -77,22 +76,31 @@ abstract class BaseFillClassInspection(
         val isObject: Boolean = false,
     )
 
-    abstract fun getConstructorPromptDescription(): String
+    private data class TemplateFieldInfo(
+        val argumentPointer: SmartPsiElementPointer<KtValueArgument>,
+        val defaultText: String,
+    )
 
-    abstract fun getFunctionPromptDescription(): String
+    abstract val constructorPromptDescription: String
+
+    abstract val functionPromptDescription: String
+
+    abstract val alwaysFillArgumentValues: Boolean
 
     private val Context.problemDescription: String
         get() {
             return if (isConstructor) {
-                getConstructorPromptDescription()
+                constructorPromptDescription
             } else {
-                getFunctionPromptDescription()
+                functionPromptDescription
             }
         }
 
     override fun createOptionsPanel(): JComponent? {
         val panel = MultipleCheckboxOptionsPanel(this)
-        panel.addCheckbox(LABEL_WITHOUT_DEFAULT_VALUES, "withoutDefaultValues")
+        if (!alwaysFillArgumentValues) {
+            panel.addCheckbox(LABEL_WITHOUT_DEFAULT_VALUES, "withoutDefaultValues")
+        }
         panel.addCheckbox(LABEL_WITHOUT_DEFAULT_ARGUMENTS, "withoutDefaultArguments")
         panel.addCheckbox(LABEL_WITH_TRAILING_COMMA, "withTrailingComma")
         if (PutArgumentOnSeparateLineHelper.isAvailable()) {
@@ -230,10 +238,10 @@ abstract class BaseFillClassInspection(
             context: ActionContext,
             element: KtValueArgumentList,
         ): ModCommand =
-            ModCommand.psiUpdate(element) { _: KtValueArgumentList, updater: ModPsiUpdater ->
+            ModCommand.psiUpdate(element) { writableElement: KtValueArgumentList, updater: ModPsiUpdater ->
                 applyFillArgumentsFix(
                     updater,
-                    element,
+                    writableElement,
                     candidateIndex,
                 )
             }
@@ -269,7 +277,7 @@ abstract class BaseFillClassInspection(
     private inner class FillArgumentFix(
         val context: Context,
     ) : KotlinModCommandQuickFix<KtValueArgumentList>() {
-        override fun getFamilyName() = if (context.isConstructor) getConstructorPromptDescription() else getFunctionPromptDescription()
+        override fun getFamilyName() = if (context.isConstructor) constructorPromptDescription else functionPromptDescription
 
         override fun applyFix(
             project: Project,
@@ -303,9 +311,14 @@ abstract class BaseFillClassInspection(
                 )
             }
 
-        for (newArgument in newArguments) {
-            addArgument(newArgument)
-        }
+        val templateFieldInfos =
+            newArguments.map { newArgument ->
+                val addedArgument = addArgument(newArgument)
+                TemplateFieldInfo(
+                    argumentPointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(addedArgument),
+                    defaultText = newArgument.getArgumentExpression()?.text.orEmpty(),
+                )
+            }
 
         // post-fill process
 
@@ -336,11 +349,10 @@ abstract class BaseFillClassInspection(
         findElementsInArgsByType<KtLambdaExpression>(argumentSize)
             .forEach { ShortenReferencesFacility.getInstance().shorten(it) }
 
-        // 4. Set argument placeholders
-        // This should be run on final state
+        // 4. Set argument placeholders on the final state (after shorten)
         if (!isPreviewSession() && movePointerToEveryArgument && updater != null) {
             PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
-            startToReplaceArguments(argumentSize, updater)
+            startToReplaceArguments(templateFieldInfos, updater)
         }
     }
 
@@ -367,7 +379,7 @@ abstract class BaseFillClassInspection(
         session: KaSession,
         parameter: KaVariableSignature<KaValueParameterSymbol>,
     ): ParameterInfo {
-        if (withoutDefaultValues) {
+        if (!alwaysFillArgumentValues && withoutDefaultValues) {
             return ParameterInfo(parameter.name.identifier, null)
         }
         val value = fillValue(session, parameter)
@@ -420,17 +432,21 @@ abstract class BaseFillClassInspection(
     private fun KtValueArgumentList.hasTrailingComma() =
         rightParenthesis?.getPrevSiblingIgnoringWhitespaceAndComments(withItself = false)?.node?.elementType == KtTokens.COMMA
 
-    private fun KtValueArgumentList.startToReplaceArguments(
-        startIndex: Int,
+    private fun startToReplaceArguments(
+        templateFieldInfos: List<TemplateFieldInfo>,
         updater: ModPsiUpdater,
     ) {
         val templateBuilder = updater.templateBuilder()
-        arguments.drop(startIndex).forEach { argument ->
-            val argumentExpression = argument.getArgumentExpression()
-            if (argumentExpression != null) {
-                templateBuilder.field(argumentExpression, argumentExpression.text)
-            } else {
-                templateBuilder.field(argument.lastChild, "")
+        for (fieldInfo in templateFieldInfos) {
+            val argument = fieldInfo.argumentPointer.element?.takeIf { it.isValid } ?: continue
+            val argumentExpression = argument.getArgumentExpression()?.takeIf { it.isValid }
+            when {
+                argumentExpression != null ->
+                    templateBuilder.field(argumentExpression, argumentExpression.text)
+                else -> {
+                    val anchor = argument.lastChild?.takeIf { it.isValid } ?: continue
+                    templateBuilder.field(anchor, fieldInfo.defaultText)
+                }
             }
         }
     }
@@ -441,14 +457,9 @@ abstract class BaseFillClassInspection(
                 it.methodName == "generatePreview"
         }
 
-    private fun KtDotQualifiedExpression.deleteQualifier(): KtExpression? {
-        val selectorExpression = selectorExpression ?: return null
-        return this.replace(selectorExpression) as KtExpression
-    }
-
     companion object {
-        const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill with default values"
-        const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill default arguments"
+        const val LABEL_WITHOUT_DEFAULT_VALUES = "Fill argument names only"
+        const val LABEL_WITHOUT_DEFAULT_ARGUMENTS = "Do not fill parameters with default values"
         const val LABEL_WITH_TRAILING_COMMA = "Append trailing comma"
         const val LABEL_PUT_ARGUMENTS_ON_SEPARATE_LINES = "Put arguments on separate lines"
         const val LABEL_MOVE_POINTER_TO_EVERY_ARGUMENT = "Move pointer to every argument"

@@ -15,9 +15,14 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 
 open class FillEmptyValuesInspection : BaseFillClassInspection() {
-    override fun getConstructorPromptDescription(): String = "Fill class constructor"
+    override val constructorPromptDescription: String
+        get() = "Fill class constructor"
 
-    override fun getFunctionPromptDescription(): String = "Fill function"
+    override val functionPromptDescription: String
+        get() = "Fill function"
+
+    override val alwaysFillArgumentValues: Boolean
+        get() = false
 
     override fun fillValue(
         session: KaSession,

@@ -7,9 +7,14 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 
 class FillDummyValuesInspection : FillEmptyValuesInspection() {
-    override fun getConstructorPromptDescription(): String = "Fill class constructor with dummy values"
+    override val constructorPromptDescription: String
+        get() = "Fill class constructor with dummy values"
 
-    override fun getFunctionPromptDescription(): String = "Fill function with dummy values"
+    override val functionPromptDescription: String
+        get() = "Fill function with dummy values"
+
+    override val alwaysFillArgumentValues: Boolean
+        get() = true
 
     override fun fillValue(
         session: KaSession,

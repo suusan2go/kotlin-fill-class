@@ -5,9 +5,14 @@ import org.jetbrains.kotlin.analysis.api.signatures.KaVariableSignature
 import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
 
 class FillVariablesOfSameNameInspection : BaseFillClassInspection() {
-    override fun getConstructorPromptDescription(): String = "Fill class constructor with variables of the same name"
+    override val constructorPromptDescription: String
+        get() = "Fill class constructor with variables of the same name"
 
-    override fun getFunctionPromptDescription(): String = "Fill class constructor with variables of the same name"
+    override val functionPromptDescription: String
+        get() = "Fill function with variables of the same name"
+
+    override val alwaysFillArgumentValues: Boolean
+        get() = true
 
     override fun fillValue(
         session: KaSession,

@@ -1020,6 +1020,46 @@ class FillEmptyValueInspectionTest {
     }
 
     @Test
+    fun `test move pointer to every argument with string constructor`() {
+        doAvailableTest(
+            """
+            class User(val name: String, val age: Int)
+            fun test() {
+                User(<caret>)
+            }
+        """,
+            """
+            class User(val name: String, val age: Int)
+            fun test() {
+                User(name = ""<caret>, age = 0)
+            }
+        """,
+            movePointerToEveryArgument = true,
+        )
+    }
+
+    @Test
+    fun `test move pointer to every argument with call expression constructor`() {
+        doAvailableTest(
+            """
+            class A
+            class B(val a: A)
+            fun test() {
+                B(<caret>)
+            }
+        """,
+            """
+            class A
+            class B(val a: A)
+            fun test() {
+                B(a = A()<caret>)
+            }
+        """,
+            movePointerToEveryArgument = true,
+        )
+    }
+
+    @Test
     fun  `test only vararg argument`() {
         doUnavailableTest(
             """
