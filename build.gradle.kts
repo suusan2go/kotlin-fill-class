@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    val kotlinVersion = "2.3.0"
+    val kotlinVersion = "2.4.0"
     repositories {
         mavenCentral()
     }
@@ -16,8 +16,8 @@ buildscript {
 
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.10.5"
-    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.0"
     id("org.jlleitschuh.gradle.ktlint") version "14.0.1"
     id("jvm-test-suite")
 }
@@ -27,7 +27,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-val pluginVersion = "2.1.0"
+val pluginVersion = "2.1.1"
 
 group = "com.github.suusan2go.kotlin-fill-class"
 version = pluginVersion
@@ -42,7 +42,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdea("2025.3.1.1")
+        intellijIdea("2026.1.3")
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
         testFramework(TestFrameworkType.Platform)
@@ -78,10 +78,7 @@ tasks.named<Test>("test") {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-receivers")
-    }
-    compilerOptions {
-        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4
     }
 }
 
