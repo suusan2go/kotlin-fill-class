@@ -77,6 +77,7 @@ tasks.named<Test>("test") {
 }
 
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4
     }

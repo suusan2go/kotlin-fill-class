@@ -440,13 +440,11 @@ abstract class BaseFillClassInspection(
         for (fieldInfo in templateFieldInfos) {
             val argument = fieldInfo.argumentPointer.element?.takeIf { it.isValid } ?: continue
             val argumentExpression = argument.getArgumentExpression()?.takeIf { it.isValid }
-            when {
-                argumentExpression != null ->
-                    templateBuilder.field(argumentExpression, argumentExpression.text)
-                else -> {
-                    val anchor = argument.lastChild?.takeIf { it.isValid } ?: continue
-                    templateBuilder.field(anchor, fieldInfo.defaultText)
-                }
+            if (argumentExpression != null) {
+                templateBuilder.field(argumentExpression, argumentExpression.text)
+            } else {
+                val anchor = argument.lastChild?.takeIf { it.isValid } ?: continue
+                templateBuilder.field(anchor, fieldInfo.defaultText)
             }
         }
     }
