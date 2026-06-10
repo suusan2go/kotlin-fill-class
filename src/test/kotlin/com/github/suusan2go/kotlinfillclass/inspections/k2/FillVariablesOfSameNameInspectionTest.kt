@@ -84,7 +84,7 @@ class FillVariablesOfSameNameInspectionTest {
                 foo(s = s, t = t, u = u)
             }
         """,
-            "Fill class constructor with variables of the same name",
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -97,6 +97,7 @@ class FillVariablesOfSameNameInspectionTest {
                 foo("", 0<caret>)
             }
         """,
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -109,7 +110,7 @@ class FillVariablesOfSameNameInspectionTest {
                 foo(1, "b"<caret>) {}
             }
         """,
-            "Fill class constructor with variables of the same name\"",
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -128,7 +129,7 @@ class FillVariablesOfSameNameInspectionTest {
                 foo(1, b = b) {}
             }
         """,
-            "Fill class constructor with variables of the same name",
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -150,7 +151,7 @@ class FillVariablesOfSameNameInspectionTest {
                 ) {}
             }
         """,
-            "Fill class constructor with variables of the same name",
+            FUNCTION_PROBLEM_DESCRIPTION,
             withTrailingComma = true,
             putArgumentsOnSeparateLines = true,
         )
@@ -357,6 +358,7 @@ class FillVariablesOfSameNameInspectionTest {
                 Java("").foo(<caret>)
             }
         """,
+            FUNCTION_PROBLEM_DESCRIPTION,
             javaDependencies = listOf(javaDependency),
         )
     }
@@ -392,7 +394,7 @@ class FillVariablesOfSameNameInspectionTest {
                 Foo().foo(x = x, y = y)
             }
         """,
-            "Fill class constructor with variables of the same name",
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -419,7 +421,7 @@ class FillVariablesOfSameNameInspectionTest {
                 Foo().foo(x = x, y = y)
             }
         """,
-            "Fill class constructor with variables of the same name",
+            FUNCTION_PROBLEM_DESCRIPTION,
         )
     }
 
@@ -531,7 +533,7 @@ class FillVariablesOfSameNameInspectionTest {
                  )
              }
          """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             withTrailingComma = true,
         )
     }
@@ -551,7 +553,7 @@ class FillVariablesOfSameNameInspectionTest {
                 foo(a = a, b = b, c = c, d = d)
             }
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             putArgumentsOnSeparateLines = false,
         )
     }
@@ -576,7 +578,7 @@ class FillVariablesOfSameNameInspectionTest {
                 )
             }
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             putArgumentsOnSeparateLines = true,
         )
     }
@@ -601,7 +603,7 @@ class FillVariablesOfSameNameInspectionTest {
                 )
             }
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             putArgumentsOnSeparateLines = true,
         )
     }
@@ -617,7 +619,7 @@ class FillVariablesOfSameNameInspectionTest {
             fun foo(x: Int, y: Int, z: Int) = x + y + z
             val bar = foo(x = x<caret>, y = y, z = z)
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             movePointerToEveryArgument = true,
         )
     }
@@ -633,7 +635,7 @@ class FillVariablesOfSameNameInspectionTest {
             fun foo(x: Int, y: Int, z: Int) = x + y + z
             val bar = foo(x = 1, y = y<caret>, z = z)
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             movePointerToEveryArgument = true,
         )
     }
@@ -653,7 +655,7 @@ class FillVariablesOfSameNameInspectionTest {
                 z = z
             )
         """,
-            problemDescription = "Fill class constructor with variables of the same name",
+            problemDescription = FUNCTION_PROBLEM_DESCRIPTION,
             putArgumentsOnSeparateLines = true,
             movePointerToEveryArgument = true,
         )
@@ -662,7 +664,7 @@ class FillVariablesOfSameNameInspectionTest {
     private fun doAvailableTest(
         before: String,
         after: String,
-        problemDescription: String = "Fill class constructor with variables of the same name",
+        problemDescription: String = CONSTRUCTOR_PROBLEM_DESCRIPTION,
         dependencies: List<String> = emptyList(),
         javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultArguments: Boolean = false,
@@ -687,7 +689,7 @@ class FillVariablesOfSameNameInspectionTest {
 
     private fun doUnavailableTest(
         before: String,
-        problemDescription: String = "Fill class constructor with variables of the same name",
+        problemDescription: String = CONSTRUCTOR_PROBLEM_DESCRIPTION,
         dependencies: List<String> = emptyList(),
         javaDependencies: List<JavaDependency> = emptyList(),
         withoutDefaultArguments: Boolean = false,
@@ -710,7 +712,7 @@ class FillVariablesOfSameNameInspectionTest {
 
     private fun doHighlighting(
         code: String,
-        problemDescription: String = "Fill class constructor with variables of the same name",
+        problemDescription: String = CONSTRUCTOR_PROBLEM_DESCRIPTION,
         dependencies: List<String>,
         javaDependencies: List<JavaDependency>,
         withoutDefaultArguments: Boolean,
@@ -751,4 +753,9 @@ class FillVariablesOfSameNameInspectionTest {
     }
 
     data class JavaDependency(val className: String, @Language("java") val source: String)
+
+    private companion object {
+        const val CONSTRUCTOR_PROBLEM_DESCRIPTION = "Fill class constructor with variables of the same name"
+        const val FUNCTION_PROBLEM_DESCRIPTION = "Fill function with variables of the same name"
+    }
 }
