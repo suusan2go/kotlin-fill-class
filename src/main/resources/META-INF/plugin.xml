@@ -10,13 +10,16 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <h2>2.1.0</h2>
+      <h2>2.1.1</h2>
       <ul>
         <li>
-          Enable K2 mode on default. (related to <a href="https://github.com/suusan2go/kotlin-fill-class/issues/137">#137</a>)
+          Fix invalid PSI errors when setting template fields after fill. (related to <a href="https://github.com/suusan2go/kotlin-fill-class/issues/143">#143</a>, <a href="https://github.com/suusan2go/kotlin-fill-class/issues/136">#136</a>)
         </li>
         <li>
-          Bumped minimum supported version to IntelliJ IDEA 2025.3.1.
+          Remove experimental APIs for improved stability.
+        </li>
+        <li>
+          Bump build toolchain to IntelliJ IDEA 2026.1.3.
         </li>
       </ul>
     ]]>
