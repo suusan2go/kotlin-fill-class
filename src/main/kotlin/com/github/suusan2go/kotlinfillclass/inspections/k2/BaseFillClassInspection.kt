@@ -123,14 +123,14 @@ abstract class BaseFillClassInspection(
         val callElement = element.parent as? KtCallElement ?: return null
         return findCandidates(callElement).takeIf { it.isNotEmpty() }?.let {
             Context(
-                functionName = it[0].partiallyAppliedSymbol.signature.toString(),
+                functionName = it[0].signature.toString(),
                 candidateLabels =
                     it.map { call ->
                         callElement.calleeExpression?.text + (
                             call.symbol.psi
                                 ?.getChildOfType<KtParameterList>()
                                 ?.text
-                                ?: call.partiallyAppliedSymbol.signature.valueParameters.joinToString(
+                                ?: call.signature.valueParameters.joinToString(
                                     prefix = "(",
                                     postfix = ")",
                                     separator = ", ",
@@ -140,7 +140,7 @@ abstract class BaseFillClassInspection(
                                 )
                         )
                     },
-                candidates = it.map { call -> call.partiallyAppliedSymbol.signature.valueParameters },
+                candidates = it.map { call -> call.signature.valueParameters },
                 isConstructor = it[0].symbol is KaConstructorSymbol,
             )
         }
@@ -166,7 +166,7 @@ abstract class BaseFillClassInspection(
                                 KaSymbolOrigin.JAVA_SYNTHETIC_PROPERTY,
                                 KaSymbolOrigin.JS_DYNAMIC,
                             ) &&
-                            ktCall.partiallyAppliedSymbol.signature.valueParameters
+                            ktCall.signature.valueParameters
                                 .filterNot { it.symbol.isVararg }
                                 .size > argumentSize
                     }
@@ -262,7 +262,7 @@ abstract class BaseFillClassInspection(
                         createArguments(
                             element = element,
                             lambdaArgument = lambdaArgument,
-                            parameters = candidates[candidateIndex].partiallyAppliedSymbol.signature.valueParameters,
+                            parameters = candidates[candidateIndex].signature.valueParameters,
                         )
                     } else {
                         null
