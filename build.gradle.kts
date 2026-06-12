@@ -92,7 +92,7 @@ intellijPlatform {
         version = pluginVersion
         name = "kotlin-fill-class"
         ideaVersion {
-            sinceBuild = "253"
+            sinceBuild = "261"
             untilBuild = provider { null }
         }
     }
@@ -101,7 +101,7 @@ intellijPlatform {
             select {
                 types = listOf(IntelliJPlatformType.IntellijIdea)
                 channels = listOf(ProductRelease.Channel.RELEASE)
-                sinceBuild = "2025.3.1"
+                sinceBuild = "2026.1"
             }
         }
     }
