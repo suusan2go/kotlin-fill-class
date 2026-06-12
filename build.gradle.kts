@@ -27,7 +27,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-val pluginVersion = "2.1.1"
+val pluginVersion = "2.2.0"
 
 group = "com.github.suusan2go.kotlin-fill-class"
 version = pluginVersion
